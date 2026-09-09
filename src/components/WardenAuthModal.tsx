@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Shield, Lock, X, ArrowRight } from 'lucide-react';
+import { setIsWardenRemembered } from '../utils/storage';
 
 interface WardenAuthModalProps {
   correctPin: string;
@@ -13,11 +14,13 @@ export const WardenAuthModal: React.FC<WardenAuthModalProps> = ({
   onClose,
 }) => {
   const [pin, setPin] = useState('');
+  const [rememberPasscode, setRememberPasscode] = useState(true);
   const [error, setError] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (pin === (correctPin || 'Ramesh1234')) {
+      setIsWardenRemembered(rememberPasscode);
       onSuccess();
     } else {
       setError(true);
@@ -69,6 +72,19 @@ export const WardenAuthModal: React.FC<WardenAuthModalProps> = ({
                 Incorrect passcode. Please try again.
               </span>
             )}
+          </div>
+
+          {/* Remember Passcode Checkbox */}
+          <div className="pt-0.5 text-left">
+            <label className="flex items-center gap-2 cursor-pointer select-none text-xs text-slate-300">
+              <input
+                type="checkbox"
+                checked={rememberPasscode}
+                onChange={(e) => setRememberPasscode(e.target.checked)}
+                className="mt-0.5 rounded text-cyan-500 focus:ring-cyan-400 border-slate-700 bg-slate-800"
+              />
+              <span>Remember passcode on this device</span>
+            </label>
           </div>
 
           <button

@@ -5,6 +5,8 @@ import {
   saveStoredSettings,
   getStoredEntries,
   saveStoredEntries,
+  getIsWardenRemembered,
+  setIsWardenRemembered,
   ENTRIES_KEY,
 } from './utils/storage';
 import { formatTimestampTime } from './utils/timeUtils';
@@ -115,7 +117,7 @@ export default function App() {
         todayEntriesCount={todayEntriesCount}
         onCheckIn={handleCheckIn}
         onOpenWardenLogin={() => {
-          if (isWardenUnlocked) {
+          if (isWardenUnlocked || getIsWardenRemembered()) {
             setIsWardenUnlocked(true);
           } else {
             setShowWardenAuth(true);
@@ -144,6 +146,10 @@ export default function App() {
           onClosePanel={() => setIsWardenUnlocked(false)}
           onOpenQRPoster={() => setShowQRPoster(true)}
           onRefreshRecords={refreshRecords}
+          onLockWarden={() => {
+            setIsWardenRemembered(false);
+            setIsWardenUnlocked(false);
+          }}
         />
       )}
 

@@ -2,6 +2,28 @@ import type { PoolEntry, PoolSettings, MealBreak } from '../types';
 
 export const SETTINGS_KEY = 'hostel_pool_settings_v6';
 export const ENTRIES_KEY = 'hostel_pool_entries_v6';
+export const WARDEN_REMEMBERED_KEY = 'hostel_pool_warden_remembered_v1';
+
+export function getIsWardenRemembered(): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    return localStorage.getItem(WARDEN_REMEMBERED_KEY) === 'true';
+  } catch {
+    return false;
+  }
+}
+
+export function setIsWardenRemembered(remember: boolean): void {
+  try {
+    if (remember) {
+      localStorage.setItem(WARDEN_REMEMBERED_KEY, 'true');
+    } else {
+      localStorage.removeItem(WARDEN_REMEMBERED_KEY);
+    }
+  } catch (err) {
+    console.error('Failed to set warden remembered state:', err);
+  }
+}
 
 export const DEFAULT_MEAL_BREAKS: MealBreak[] = [
   { id: 'breakfast', name: 'Morning Breakfast', startTime: '07:30', endTime: '09:00', enabled: true },

@@ -16,6 +16,7 @@ import {
   UserCheck,
   Calendar,
   RotateCw,
+  Lock,
 } from 'lucide-react';
 
 interface WardenPanelProps {
@@ -25,6 +26,7 @@ interface WardenPanelProps {
   onClosePanel: () => void;
   onOpenQRPoster: () => void;
   onRefreshRecords: () => void;
+  onLockWarden: () => void;
 }
 
 export const WardenPanel: React.FC<WardenPanelProps> = ({
@@ -34,6 +36,7 @@ export const WardenPanel: React.FC<WardenPanelProps> = ({
   onClosePanel,
   onOpenQRPoster,
   onRefreshRecords,
+  onLockWarden,
 }) => {
   // Tabs: 'records' | 'settings' | 'sheets'
   const [activeTab, setActiveTab] = useState<'records' | 'settings' | 'sheets'>('records');
@@ -147,11 +150,19 @@ export const WardenPanel: React.FC<WardenPanelProps> = ({
             <span>Entrance QR Code</span>
           </button>
           <button
+            onClick={onLockWarden}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-rose-950/60 hover:bg-rose-900/80 text-rose-300 border border-rose-800/60 rounded-xl transition cursor-pointer"
+            title="Forget saved passcode on this device"
+          >
+            <Lock className="w-3.5 h-3.5 text-rose-400" />
+            <span>Lock / Sign Out</span>
+          </button>
+          <button
             onClick={onClosePanel}
             className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xl transition cursor-pointer"
           >
-            <LogOut className="w-3.5 h-3.5 text-rose-400" />
-            <span>Close Panel</span>
+            <LogOut className="w-3.5 h-3.5 text-slate-400" />
+            <span>Close</span>
           </button>
         </div>
       </header>
