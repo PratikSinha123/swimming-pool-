@@ -72,8 +72,8 @@ export const StudentEntryPortal: React.FC<StudentEntryPortalProps> = ({
       return;
     }
 
-    // If strictly blocked by warden configuration
-    if (!poolStatus.isOpen && settings.strictBlockDuringClosures) {
+    // Strictly block submissions when pool is closed (e.g. during meal intervals or night hours)
+    if (!poolStatus.isOpen) {
       setFormError(
         poolStatus.reason ||
           `Pool is currently closed. Operating hours are ${poolStatus.openTime12h} to ${poolStatus.closeTime12h}.`
@@ -297,6 +297,24 @@ export const StudentEntryPortal: React.FC<StudentEntryPortalProps> = ({
               </div>
             )}
 
+            {/* Prominent Closure Notice if pool is closed or on meal break */}
+            {!poolStatus.isOpen && (
+              <div className="mb-4 p-3.5 rounded-2xl bg-rose-950/70 border border-rose-800/80 text-xs text-rose-200 flex items-start gap-2.5">
+                <AlertTriangle className="w-4 h-4 text-rose-400 flex-shrink-0 mt-0.5" />
+                <div>
+                  <span className="font-bold text-rose-300 block mb-0.5">
+                    Check-In Closed: {poolStatus.currentBreakName || 'Meal Break / Off Hours'}
+                  </span>
+                  <span className="text-rose-200 leading-relaxed block">
+                    {poolStatus.reason}
+                  </span>
+                  <span className="text-[11px] text-rose-400/90 block mt-1">
+                    Entry submissions are paused during this period.
+                  </span>
+                </div>
+              </div>
+            )}
+
             {/* Form: Student Full Name & Hostel Room No ONLY */}
             <form onSubmit={handleSubmitEntry} className="space-y-4 text-left">
               <div>
@@ -309,9 +327,13 @@ export const StudentEntryPortal: React.FC<StudentEntryPortalProps> = ({
                   required
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="Enter full name"
-                  className="w-full bg-slate-800/80 border border-slate-700/80 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition"
-                  disabled={isSubmitting || (!!settings.strictBlockDuringClosures && !poolStatus.isOpen)}
+                  placeholder={poolStatus.isOpen ? 'Enter full name' : `Closed for ${poolStatus.currentBreakName || 'meal interval'}`}
+                  className={`w-full bg-slate-800/80 border ${
+                    !poolStatus.isOpen
+                      ? 'border-slate-800 bg-slate-900/60 opacity-60 cursor-not-allowed text-slate-500'
+                      : 'border-slate-700/80 text-white focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400'
+                  } rounded-xl px-3.5 py-2.5 text-sm placeholder-slate-500 focus:outline-none transition`}
+                  disabled={!poolStatus.isOpen || isSubmitting}
                 />
               </div>
 
@@ -325,9 +347,13 @@ export const StudentEntryPortal: React.FC<StudentEntryPortalProps> = ({
                   required
                   value={roomNumber}
                   onChange={(e) => setRoomNumber(e.target.value)}
-                  placeholder="e.g. Room 204"
-                  className="w-full bg-slate-800/80 border border-slate-700/80 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 uppercase transition"
-                  disabled={isSubmitting || (!!settings.strictBlockDuringClosures && !poolStatus.isOpen)}
+                  placeholder={poolStatus.isOpen ? 'e.g. Room 204' : 'Entries locked'}
+                  className={`w-full bg-slate-800/80 border ${
+                    !poolStatus.isOpen
+                      ? 'border-slate-800 bg-slate-900/60 opacity-60 cursor-not-allowed text-slate-500'
+                      : 'border-slate-700/80 text-white focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400'
+                  } rounded-xl px-3.5 py-2.5 text-sm placeholder-slate-500 focus:outline-none uppercase transition`}
+                  disabled={!poolStatus.isOpen || isSubmitting}
                 />
               </div>
 
@@ -343,13 +369,11 @@ export const StudentEntryPortal: React.FC<StudentEntryPortalProps> = ({
               {/* Submit Button */}
               <button
                 type="submit"
-                disabled={isSubmitting || (!!settings.strictBlockDuringClosures && !poolStatus.isOpen)}
+                disabled={!poolStatus.isOpen || isSubmitting}
                 className={`w-full py-3.5 px-5 rounded-2xl font-bold text-sm tracking-wide transition shadow-xl flex items-center justify-center gap-2 ${
-                  settings.strictBlockDuringClosures && !poolStatus.isOpen
-                    ? 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700'
-                    : poolStatus.isOpen
-                    ? 'bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white shadow-cyan-500/25 active:scale-98 cursor-pointer'
-                    : 'bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white shadow-amber-600/25 active:scale-98 cursor-pointer'
+                  !poolStatus.isOpen
+                    ? 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700 select-none'
+                    : 'bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white shadow-cyan-500/25 active:scale-98 cursor-pointer'
                 }`}
               >
                 {isSubmitting ? (
@@ -359,15 +383,10 @@ export const StudentEntryPortal: React.FC<StudentEntryPortalProps> = ({
                     <CheckCircle2 className="w-4 h-4" />
                     <span>Record Pool Entry</span>
                   </>
-                ) : settings.strictBlockDuringClosures ? (
-                  <>
-                    <DoorClosed className="w-4 h-4" />
-                    <span>Pool Closed (Opens {poolStatus.openTime12h})</span>
-                  </>
                 ) : (
                   <>
-                    <AlertTriangle className="w-4 h-4 text-amber-200" />
-                    <span>Record Entry ({poolStatus.currentBreakName || 'Meal Break Entry'})</span>
+                    <DoorClosed className="w-4 h-4 text-slate-500" />
+                    <span>Pool Closed ({poolStatus.currentBreakName || 'Meal Break'})</span>
                   </>
                 )}
               </button>

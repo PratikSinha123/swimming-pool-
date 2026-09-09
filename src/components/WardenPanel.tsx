@@ -602,36 +602,6 @@ export const WardenPanel: React.FC<WardenPanelProps> = ({
                 </button>
               </div>
 
-              {/* STRICT CLOSURE BLOCKING TOGGLE */}
-              <div className="bg-slate-800/60 border border-slate-700/80 rounded-2xl p-4 flex items-center justify-between">
-                <div>
-                  <span className="text-sm font-semibold text-white block">
-                    Strictly Block Check-Ins During Meal Breaks / Closures
-                  </span>
-                  <span className="text-xs text-slate-400 block mt-0.5">
-                    When OFF (recommended), students can still submit check-ins and they are tagged as meal-break entries. When ON, check-in button is strictly disabled.
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() =>
-                    setDraftSettings({
-                      ...draftSettings,
-                      strictBlockDuringClosures: !draftSettings.strictBlockDuringClosures,
-                    })
-                  }
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition cursor-pointer ${
-                    draftSettings.strictBlockDuringClosures ? 'bg-rose-500' : 'bg-slate-700'
-                  }`}
-                >
-                  <span
-                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${
-                      draftSettings.strictBlockDuringClosures ? 'translate-x-6' : 'translate-x-1'
-                    }`}
-                  />
-                </button>
-              </div>
-
               {/* NAMES & WARDEN PASSCODE */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
