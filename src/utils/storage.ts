@@ -88,7 +88,6 @@ export const DEFAULT_SETTINGS: PoolSettings = {
   closeTime: '22:30', // 10:30 PM
   isOpenManually: true,
   wardenPin: 'Ramesh1234',
-  googleSheetsWebhookUrl: '',
   appUrl: typeof window !== 'undefined' ? window.location.origin : '',
   mealBreaks: DEFAULT_MEAL_BREAKS,
 };
@@ -143,3 +142,15 @@ export function saveStoredEntries(entries: PoolEntry[]): void {
     console.error('Failed to save entries:', err);
   }
 }
+
+export function clearStoredEntries(): void {
+  try {
+    localStorage.setItem(ENTRIES_KEY, JSON.stringify([]));
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('pool_entries_updated'));
+    }
+  } catch (err) {
+    console.error('Failed to clear entries:', err);
+  }
+}
+

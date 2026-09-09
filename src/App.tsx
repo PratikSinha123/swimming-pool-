@@ -12,7 +12,6 @@ import {
   ENTRIES_KEY,
 } from './utils/storage';
 import { formatTimestampTime } from './utils/timeUtils';
-import { syncEntryWithGoogleSheets, fetchEntriesFromGoogleSheets } from './utils/googleSheets';
 import {
   pushEntriesToCloud,
   fetchEntriesFromCloud,
@@ -68,37 +67,27 @@ export default function App() {
     }
   }, []);
 
-  // Refresh records from local storage, Central Cloud Sync, and Google Sheets
+  // Refresh records from local storage and Central Cloud Sync
   const refreshRecords = useCallback(async () => {
     const local = getStoredEntries();
     let combined = [...local];
 
-    // 1. Fetch from Central Cloud Storage (works across all devices automatically)
+    // Fetch from Central Cloud Storage (works across all devices automatically)
     try {
       const cloudEntries = await fetchEntriesFromCloud();
       if (cloudEntries && cloudEntries.length > 0) {
         combined = mergeEntries(combined, cloudEntries);
+      } else if (cloudEntries && cloudEntries.length === 0 && local.length === 0) {
+        combined = [];
       }
     } catch (err) {
       console.warn('Cloud sync error:', err);
     }
 
-    // 2. If Google Sheets webhook is configured, also pull latest rows
-    if (settings.googleSheetsWebhookUrl) {
-      try {
-        const remote = await fetchEntriesFromGoogleSheets(settings.googleSheetsWebhookUrl);
-        if (remote && remote.length > 0) {
-          combined = mergeEntries(combined, remote);
-        }
-      } catch (err) {
-        console.warn('Google Sheets sync error:', err);
-      }
-    }
-
     setEntries(combined);
     saveStoredEntries(combined);
     return combined;
-  }, [settings.googleSheetsWebhookUrl]);
+  }, []);
 
   // Initial mount sync, tab visibility sync, & periodic polling (every 3 seconds)
   useEffect(() => {
@@ -197,13 +186,6 @@ export default function App() {
     // 2. Push immediately to Central Cloud Storage (so Warden screen updates instantly)
     pushEntriesToCloud(updated).catch((e) => console.warn('Cloud push error:', e));
 
-    // 3. Sync to Google Sheets in background if configured
-    if (settings.googleSheetsWebhookUrl) {
-      syncEntryWithGoogleSheets(settings.googleSheetsWebhookUrl, newEntry).catch((e) =>
-        console.warn('Google Sheets error:', e)
-      );
-    }
-
     return newEntry;
   };
 
@@ -216,6 +198,13 @@ export default function App() {
     setSettings(updatedWithTimestamp);
     saveStoredSettings(updatedWithTimestamp);
     await pushSettingsToCloud(updatedWithTimestamp);
+  };
+
+  // Clear all entries across local and central cloud storage
+  const handleClearAllRecords = async (): Promise<void> => {
+    setEntries([]);
+    saveStoredEntries([]);
+    await pushEntriesToCloud([]);
   };
 
   const todayStr = new Date().toLocaleDateString('en-CA');
@@ -261,6 +250,7 @@ export default function App() {
           settings={settings}
           entries={entries}
           onUpdateSettings={handleUpdateSettings}
+          onClearAllRecords={handleClearAllRecords}
           onClosePanel={() => {
             setActiveView('student');
             saveActiveView('student');

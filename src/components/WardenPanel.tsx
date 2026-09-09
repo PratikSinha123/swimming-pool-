@@ -1,28 +1,27 @@
 import React, { useState, useEffect } from 'react';
 import type { PoolEntry, PoolSettings } from '../types';
 import { format24To12 } from '../utils/timeUtils';
-import { GOOGLE_APPS_SCRIPT_TEMPLATE } from '../utils/googleSheets';
 import {
   Shield,
   Clock,
-  FileSpreadsheet,
   QrCode,
   Search,
   Download,
   AlertTriangle,
   CheckCircle,
-  Copy,
   UserCheck,
   Calendar,
   RotateCw,
   Lock,
   ExternalLink,
+  Trash2,
 } from 'lucide-react';
 
 interface WardenPanelProps {
   settings: PoolSettings;
   entries: PoolEntry[];
   onUpdateSettings: (newSettings: PoolSettings) => Promise<void> | void;
+  onClearAllRecords: () => Promise<void> | void;
   onClosePanel: () => void;
   onOpenQRPoster: () => void;
   onRefreshRecords: () => void;
@@ -33,19 +32,22 @@ export const WardenPanel: React.FC<WardenPanelProps> = ({
   settings,
   entries,
   onUpdateSettings,
+  onClearAllRecords,
   onClosePanel,
   onOpenQRPoster,
   onRefreshRecords,
   onLockWarden,
 }) => {
-  // Tabs: 'records' | 'settings' | 'sheets'
-  const [activeTab, setActiveTab] = useState<'records' | 'settings' | 'sheets'>('records');
+  // Tabs: 'records' | 'settings'
+  const [activeTab, setActiveTab] = useState<'records' | 'settings'>('records');
 
   // Local settings draft form
   const [draftSettings, setDraftSettings] = useState<PoolSettings>({ ...settings });
   const [settingsSaved, setSettingsSaved] = useState(false);
   const [isSavingSettings, setIsSavingSettings] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const [isClearing, setIsClearing] = useState(false);
 
   // Keep draft settings synced when newer settings are received from cloud
   useEffect(() => {
@@ -58,9 +60,6 @@ export const WardenPanel: React.FC<WardenPanelProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [dateFilter, setDateFilter] = useState<string>('all');
 
-  // Google Sheets copy status
-  const [copiedCode, setCopiedCode] = useState(false);
-
   const todayStr = new Date().toLocaleDateString('en-CA');
   const todayEntries = entries.filter((e) => e.dateStr === todayStr);
 
@@ -68,6 +67,16 @@ export const WardenPanel: React.FC<WardenPanelProps> = ({
     setIsRefreshing(true);
     await onRefreshRecords();
     setTimeout(() => setIsRefreshing(false), 500);
+  };
+
+  const handleConfirmClear = async () => {
+    setIsClearing(true);
+    try {
+      await onClearAllRecords();
+      setShowClearConfirm(false);
+    } finally {
+      setIsClearing(false);
+    }
   };
 
   const handleSaveSettings = async (e: React.FormEvent) => {
@@ -85,12 +94,6 @@ export const WardenPanel: React.FC<WardenPanelProps> = ({
     }
     setSettingsSaved(true);
     setTimeout(() => setSettingsSaved(false), 4000);
-  };
-
-  const handleCopyAppsScript = () => {
-    navigator.clipboard.writeText(GOOGLE_APPS_SCRIPT_TEMPLATE);
-    setCopiedCode(true);
-    setTimeout(() => setCopiedCode(false), 3000);
   };
 
   const handleExportCSV = () => {
@@ -187,7 +190,7 @@ export const WardenPanel: React.FC<WardenPanelProps> = ({
         </div>
       </header>
 
-      {/* Navigation Tabs (Smooth horizontal scrolling on phones) */}
+      {/* Navigation Tabs */}
       <div className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-6 py-2 border-b border-slate-800 bg-slate-900/50 overflow-x-auto no-scrollbar flex-nowrap flex-shrink-0">
         <button
           onClick={() => setActiveTab('records')}
@@ -198,7 +201,7 @@ export const WardenPanel: React.FC<WardenPanelProps> = ({
           }`}
         >
           <UserCheck className="w-3.5 h-3.5 text-cyan-400" />
-          <span>Entries ({entries.length})</span>
+          <span>Student Entries ({entries.length})</span>
         </button>
 
         <button
@@ -211,18 +214,6 @@ export const WardenPanel: React.FC<WardenPanelProps> = ({
         >
           <Clock className="w-3.5 h-3.5 text-amber-400" />
           <span>Pool Operating Hours ({format24To12(settings.openTime)} – {format24To12(settings.closeTime)})</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('sheets')}
-          className={`flex items-center gap-1.5 sm:gap-2 px-3 py-1.5 rounded-xl text-xs font-medium whitespace-nowrap transition cursor-pointer flex-shrink-0 active:scale-95 ${
-            activeTab === 'sheets'
-              ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40'
-              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
-          }`}
-        >
-          <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-400" />
-          <span>Google Sheets Sync</span>
         </button>
       </div>
 
@@ -246,7 +237,22 @@ export const WardenPanel: React.FC<WardenPanelProps> = ({
                   <span className="text-xs sm:text-sm font-normal text-slate-400">today</span>
                 </div>
                 <span className="block text-[10px] sm:text-[11px] text-emerald-400 mt-1 sm:mt-2 truncate">
-                  Total records: {entries.length}
+                  Logged today
+                </span>
+              </div>
+
+              {/* All-Time Total Entries */}
+              <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-3.5 sm:p-5 shadow-lg">
+                <div className="flex items-center justify-between text-xs text-slate-400 font-medium mb-1">
+                  <span>All-Time Records</span>
+                  <UserCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-cyan-400" />
+                </div>
+                <div className="text-xl sm:text-3xl font-bold text-white tracking-tight">
+                  {entries.length}{' '}
+                  <span className="text-xs sm:text-sm font-normal text-slate-400">records</span>
+                </div>
+                <span className="block text-[10px] sm:text-[11px] text-cyan-400 mt-1 sm:mt-2 truncate">
+                  Total student check-ins
                 </span>
               </div>
 
@@ -270,31 +276,6 @@ export const WardenPanel: React.FC<WardenPanelProps> = ({
                   className="mt-1 sm:mt-2 text-[11px] sm:text-xs text-cyan-400 hover:underline flex items-center gap-1 font-medium cursor-pointer"
                 >
                   Adjust hours →
-                </button>
-              </div>
-
-              {/* Google Sheets Status */}
-              <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-3.5 sm:p-5 shadow-lg">
-                <div className="flex items-center justify-between text-xs text-slate-400 font-medium mb-1">
-                  <span>Sheets Sync</span>
-                  <FileSpreadsheet className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-400" />
-                </div>
-                <div className="text-sm sm:text-lg font-bold text-white tracking-tight mt-1 truncate">
-                  {settings.googleSheetsWebhookUrl ? (
-                    <span className="text-emerald-400 flex items-center gap-1 text-xs sm:text-sm font-semibold">
-                      <CheckCircle className="w-3.5 h-3.5" /> Connected
-                    </span>
-                  ) : (
-                    <span className="text-amber-400 flex items-center gap-1 text-xs sm:text-sm font-semibold">
-                      <AlertTriangle className="w-3.5 h-3.5" /> Ready to Link
-                    </span>
-                  )}
-                </div>
-                <button
-                  onClick={() => setActiveTab('sheets')}
-                  className="mt-1 sm:mt-2 text-[11px] sm:text-xs text-cyan-400 hover:underline flex items-center gap-1 font-medium cursor-pointer"
-                >
-                  Setup webhook →
                 </button>
               </div>
 
@@ -343,6 +324,15 @@ export const WardenPanel: React.FC<WardenPanelProps> = ({
                   >
                     <Download className="w-3.5 h-3.5" />
                     <span>Export CSV</span>
+                  </button>
+                  <button
+                    onClick={() => setShowClearConfirm(true)}
+                    disabled={entries.length === 0}
+                    className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-semibold bg-rose-950/60 hover:bg-rose-900/80 text-rose-300 border border-rose-800/60 rounded-xl transition cursor-pointer active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
+                    title="Clear all student entry records"
+                  >
+                    <Trash2 className="w-3.5 h-3.5 text-rose-400" />
+                    <span>Clear Records</span>
                   </button>
                 </div>
               </div>
@@ -736,119 +726,40 @@ export const WardenPanel: React.FC<WardenPanelProps> = ({
           </div>
         )}
 
-        {/* ========================================================
-            TAB 3: GOOGLE SHEETS SYNC
-            ======================================================== */}
-        {activeTab === 'sheets' && (
-          <div className="max-w-3xl mx-auto space-y-4 sm:space-y-6 text-left">
-            <div className="bg-slate-900/90 border border-slate-800 rounded-3xl p-4 sm:p-8 shadow-xl">
-              <div className="flex items-start justify-between gap-4 mb-5 sm:mb-6">
-                <div>
-                  <h2 className="text-lg sm:text-xl font-bold text-white flex items-center gap-2">
-                    <FileSpreadsheet className="w-5 h-5 text-emerald-400" />
-                    Google Sheets Automatic Recording
-                  </h2>
-                  <p className="text-xs text-slate-400 mt-1">
-                    Every student entry automatically creates a new row in your Google Sheet with Name, Hostel Room No, and Automatic Time.
-                  </p>
-                </div>
+      </div>
 
-                <span
-                  className={`px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 flex-shrink-0 ${
-                    draftSettings.googleSheetsWebhookUrl
-                      ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                      : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
-                  }`}
-                >
-                  {draftSettings.googleSheetsWebhookUrl ? (
-                    <>
-                      <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
-                      Webhook Active
-                    </>
-                  ) : (
-                    <>
-                      <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
-                      Not Configured
-                    </>
-                  )}
-                </span>
-              </div>
-
-              {/* URL Input */}
-              <div className="mb-5 sm:mb-6 space-y-2">
-                <label className="block text-xs font-semibold text-slate-300">
-                  Google Apps Script Webhook URL:
-                </label>
-                <div className="flex flex-col sm:flex-row gap-2">
-                  <input
-                    type="url"
-                    placeholder="https://script.google.com/macros/s/.../exec"
-                    value={draftSettings.googleSheetsWebhookUrl}
-                    onChange={(e) =>
-                      setDraftSettings({ ...draftSettings, googleSheetsWebhookUrl: e.target.value })
-                    }
-                    className="flex-1 min-h-[42px] bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2 text-base sm:text-xs text-white placeholder-slate-500 font-mono focus:outline-none focus:border-cyan-400 transition"
-                  />
-                  <button
-                    onClick={() => {
-                      onUpdateSettings(draftSettings);
-                      alert('Google Sheets Webhook URL saved!');
-                    }}
-                    className="min-h-[42px] px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl transition cursor-pointer active:scale-95"
-                  >
-                    Save URL
-                  </button>
-                </div>
-              </div>
-
-              {/* Copy Script */}
-              <div className="bg-slate-800/80 border border-slate-700 rounded-2xl p-3.5 sm:p-4">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
-                  <span className="text-xs font-bold text-slate-200">
-                    Google Apps Script Code (Supports Entry Recording & Live Sync)
-                  </span>
-                  <button
-                    onClick={handleCopyAppsScript}
-                    className="self-start sm:self-auto flex items-center gap-1 text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/30 transition cursor-pointer active:scale-95"
-                  >
-                    {copiedCode ? (
-                      <>
-                        <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
-                        Copied!
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="w-3.5 h-3.5" />
-                        Copy Script Code
-                      </>
-                    )}
-                  </button>
-                </div>
-
-                <div className="bg-slate-950 p-3 rounded-xl border border-slate-800 font-mono text-[11px] text-slate-300 max-h-40 overflow-y-auto">
-                  <pre>{GOOGLE_APPS_SCRIPT_TEMPLATE}</pre>
-                </div>
-              </div>
+      {/* Clear Records Confirmation Modal */}
+      {showClearConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
+          <div className="relative w-full max-w-sm bg-slate-900 border border-rose-800/80 rounded-3xl p-6 shadow-2xl text-center space-y-4">
+            <div className="w-12 h-12 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-400 flex items-center justify-center mx-auto">
+              <Trash2 className="w-6 h-6" />
             </div>
-
-            {/* Guide */}
-            <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-4 sm:p-6">
-              <h3 className="text-sm font-bold text-white mb-3">
-                📋 1-Minute Setup in Google Sheets:
-              </h3>
-              <ol className="list-decimal list-inside space-y-2 text-xs text-slate-300">
-                <li>Create a blank spreadsheet at <strong>sheets.new</strong>.</li>
-                <li>Click <strong>Extensions</strong> → <strong>Apps Script</strong>.</li>
-                <li>Clear any code, click <strong>Copy Script Code</strong> above, and paste it.</li>
-                <li>Click <strong>Deploy</strong> (top right) → <strong>New deployment</strong>.</li>
-                <li>Select type: <strong>Web app</strong>.</li>
-                <li>Set: <em>Execute as:</em> <strong>Me</strong>, and <em>Who has access:</em> <strong>Anyone</strong>.</li>
-                <li>Click <strong>Deploy</strong>, copy the Web App URL, and paste it into the field above!</li>
-              </ol>
+            <div>
+              <h3 className="text-base font-bold text-white">Clear All Student Records?</h3>
+              <p className="text-xs text-slate-400 mt-1 leading-relaxed">
+                This will permanently delete all {entries.length} student entry records from this device and all other phones.
+              </p>
+            </div>
+            <div className="flex gap-2.5 pt-2">
+              <button
+                onClick={() => setShowClearConfirm(false)}
+                disabled={isClearing}
+                className="flex-1 py-2.5 px-4 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition cursor-pointer active:scale-95"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmClear}
+                disabled={isClearing}
+                className="flex-1 py-2.5 px-4 rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-500 text-white shadow-lg shadow-rose-600/30 transition cursor-pointer active:scale-95 flex items-center justify-center gap-1.5"
+              >
+                {isClearing ? 'Clearing...' : 'Yes, Clear All'}
+              </button>
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 };

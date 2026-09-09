@@ -1,15 +1,16 @@
 import type { PoolEntry, PoolSettings } from '../types';
 
-// Dynamic RESTful Cloud storage (cf-cache-status: DYNAMIC, zero edge-cache lag)
-const RESTFUL_SETTINGS_URL = 'https://api.restful-api.dev/objects/ff808181a067127101a0863b43ee57d0';
-const RESTFUL_ENTRIES_URL = 'https://api.restful-api.dev/objects/ff808181a067127101a0863b8c6e57d1';
-
-// Fallback endpoints on kvdb.io
+// Fast, reliable KV endpoints with no request limit
 const KVDB_ENTRIES_URL = 'https://kvdb.io/FdXCyHjkaVYMvEACD3pVMF/pool_entries';
 const KVDB_SETTINGS_URL = 'https://kvdb.io/FdXCyHjkaVYMvEACD3pVMF/pool_settings';
 
+function getCacheBustUrl(baseUrl: string): string {
+  const nonce = `${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+  return `${baseUrl}?_cb=${nonce}`;
+}
+
 /**
- * Push settings to central cloud storage so ALL phones update their times immediately
+ * Push settings to central cloud storage so ALL devices update their hours and statuses immediately
  */
 export async function pushSettingsToCloud(settings: PoolSettings): Promise<boolean> {
   const payload: PoolSettings = {
@@ -18,29 +19,6 @@ export async function pushSettingsToCloud(settings: PoolSettings): Promise<boole
   };
 
   try {
-    const res = await fetch(RESTFUL_SETTINGS_URL, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        name: 'Hostel Swimming Pool Settings',
-        data: payload,
-      }),
-    });
-    if (res.ok) {
-      // Also update fallback in background
-      fetch(KVDB_SETTINGS_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      }).catch(() => {});
-      return true;
-    }
-  } catch (err) {
-    console.warn('Primary cloud settings push warning:', err);
-  }
-
-  // Fallback to kvdb
-  try {
     const res = await fetch(KVDB_SETTINGS_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -48,7 +26,7 @@ export async function pushSettingsToCloud(settings: PoolSettings): Promise<boole
     });
     return res.ok;
   } catch (err) {
-    console.warn('Fallback settings push warning:', err);
+    console.warn('Settings cloud push error:', err);
     return false;
   }
 }
@@ -58,7 +36,7 @@ export async function pushSettingsToCloud(settings: PoolSettings): Promise<boole
  */
 export async function fetchSettingsFromCloud(): Promise<PoolSettings | null> {
   try {
-    const res = await fetch(`${RESTFUL_SETTINGS_URL}?t=${Date.now()}`, {
+    const res = await fetch(getCacheBustUrl(KVDB_SETTINGS_URL), {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
@@ -66,23 +44,7 @@ export async function fetchSettingsFromCloud(): Promise<PoolSettings | null> {
       },
       cache: 'no-store',
     });
-    if (res.ok) {
-      const json = await res.json();
-      if (json && json.data && json.data.openTime && json.data.closeTime) {
-        return json.data as PoolSettings;
-      }
-    }
-  } catch (err) {
-    console.warn('Primary settings fetch warning:', err);
-  }
 
-  // Fallback
-  try {
-    const res = await fetch(`${KVDB_SETTINGS_URL}?t=${Date.now()}`, {
-      method: 'GET',
-      headers: { 'Accept': 'application/json' },
-      cache: 'no-store',
-    });
     if (res.ok) {
       const text = await res.text();
       if (text && text.trim() !== '') {
@@ -93,38 +55,15 @@ export async function fetchSettingsFromCloud(): Promise<PoolSettings | null> {
       }
     }
   } catch (err) {
-    console.warn('Fallback settings fetch warning:', err);
+    console.warn('Settings cloud fetch error:', err);
   }
-
   return null;
 }
 
 /**
- * Push entries to central cloud storage so all devices stay in sync
+ * Push entries to central cloud storage so all devices stay in sync (or empty array when cleared)
  */
 export async function pushEntriesToCloud(entries: PoolEntry[]): Promise<boolean> {
-  try {
-    const res = await fetch(RESTFUL_ENTRIES_URL, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        name: 'Hostel Swimming Pool Entries',
-        data: { entries },
-      }),
-    });
-    if (res.ok) {
-      fetch(KVDB_ENTRIES_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(entries),
-      }).catch(() => {});
-      return true;
-    }
-  } catch (err) {
-    console.warn('Primary entries push warning:', err);
-  }
-
-  // Fallback
   try {
     const res = await fetch(KVDB_ENTRIES_URL, {
       method: 'POST',
@@ -133,7 +72,7 @@ export async function pushEntriesToCloud(entries: PoolEntry[]): Promise<boolean>
     });
     return res.ok;
   } catch (err) {
-    console.warn('Fallback entries push warning:', err);
+    console.warn('Entries cloud push error:', err);
     return false;
   }
 }
@@ -143,7 +82,7 @@ export async function pushEntriesToCloud(entries: PoolEntry[]): Promise<boolean>
  */
 export async function fetchEntriesFromCloud(): Promise<PoolEntry[] | null> {
   try {
-    const res = await fetch(`${RESTFUL_ENTRIES_URL}?t=${Date.now()}`, {
+    const res = await fetch(getCacheBustUrl(KVDB_ENTRIES_URL), {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
@@ -151,23 +90,7 @@ export async function fetchEntriesFromCloud(): Promise<PoolEntry[] | null> {
       },
       cache: 'no-store',
     });
-    if (res.ok) {
-      const json = await res.json();
-      if (json && json.data && Array.isArray(json.data.entries)) {
-        return json.data.entries as PoolEntry[];
-      }
-    }
-  } catch (err) {
-    console.warn('Primary entries fetch warning:', err);
-  }
 
-  // Fallback
-  try {
-    const res = await fetch(`${KVDB_ENTRIES_URL}?t=${Date.now()}`, {
-      method: 'GET',
-      headers: { 'Accept': 'application/json' },
-      cache: 'no-store',
-    });
     if (res.ok) {
       const text = await res.text();
       if (text && text.trim() !== '') {
@@ -178,29 +101,21 @@ export async function fetchEntriesFromCloud(): Promise<PoolEntry[] | null> {
       }
     }
   } catch (err) {
-    console.warn('Fallback entries fetch warning:', err);
+    console.warn('Entries cloud fetch error:', err);
   }
-
   return null;
 }
 
 /**
- * Merge local entries and cloud entries safely without duplication
+ * Sync entries between cloud and local
+ * - If remote was returned by cloud, remote is the single source of truth!
+ * - When remote is empty [], it means records were cleared in cloud.
  */
 export function mergeEntries(local: PoolEntry[], remote: PoolEntry[]): PoolEntry[] {
-  const map = new Map<string, PoolEntry>();
-
-  for (const item of remote) {
-    const key = item.id || `${item.name}-${item.entryTimestamp || item.entryTimeFormatted}`;
-    map.set(key, item);
+  // If remote is explicitly provided from cloud, it is authoritative
+  if (Array.isArray(remote)) {
+    return remote;
   }
-
-  for (const item of local) {
-    const key = item.id || `${item.name}-${item.entryTimestamp || item.entryTimeFormatted}`;
-    if (!map.has(key)) {
-      map.set(key, item);
-    }
-  }
-
-  return Array.from(map.values()).sort((a, b) => (b.entryTimestamp || 0) - (a.entryTimestamp || 0));
+  return local;
 }
+

@@ -25,7 +25,6 @@ export interface PoolSettings {
   isOpenManually: boolean; // Manual override: false if warden forcefully closes pool
   strictBlockDuringClosures?: boolean; // false by default: allows entries with notice
   wardenPin: string;      // default "Ramesh1234"
-  googleSheetsWebhookUrl: string;
   appUrl: string;
   mealBreaks: MealBreak[];
   updatedAt?: number;
