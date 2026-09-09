@@ -118,7 +118,7 @@ export const StudentEntryPortal: React.FC<StudentEntryPortalProps> = ({
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col items-center justify-between p-4 sm:p-6 selection:bg-cyan-500 selection:text-white">
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col items-center justify-between p-3.5 sm:p-6 pb-safe pt-safe selection:bg-cyan-500 selection:text-white">
       {/* Persistent Warden Device Banner (if logged in on this device) */}
       {isWardenLoggedIn && (
         <div className="w-full max-w-md bg-emerald-950/80 border border-emerald-700/60 rounded-2xl px-3.5 py-2 mb-3 flex items-center justify-between shadow-lg shadow-emerald-950/30">
@@ -131,7 +131,7 @@ export const StudentEntryPortal: React.FC<StudentEntryPortalProps> = ({
           </div>
           <button
             onClick={onOpenWardenLogin}
-            className="text-[11px] font-bold bg-emerald-600 hover:bg-emerald-500 text-white px-2.5 py-1 rounded-lg transition cursor-pointer shadow-sm"
+            className="text-[11px] font-bold bg-emerald-600 hover:bg-emerald-500 text-white px-2.5 py-1 rounded-lg transition cursor-pointer shadow-sm active:scale-95"
           >
             Dashboard &rarr;
           </button>
@@ -139,16 +139,16 @@ export const StudentEntryPortal: React.FC<StudentEntryPortalProps> = ({
       )}
 
       {/* Top Navbar */}
-      <header className="w-full max-w-md flex items-center justify-between py-2 border-b border-cyan-900/40 mb-6">
+      <header className="w-full max-w-md flex items-center justify-between py-2 border-b border-cyan-900/40 mb-4 sm:mb-6">
         <div className="flex items-center gap-2.5">
-          <div className="p-2 rounded-xl bg-gradient-to-tr from-cyan-500 to-blue-600 shadow-md shadow-cyan-500/20">
+          <div className="p-2 rounded-xl bg-gradient-to-tr from-cyan-500 to-blue-600 shadow-md shadow-cyan-500/20 flex-shrink-0">
             <Waves className="w-5 h-5 text-white animate-pulse" />
           </div>
-          <div>
-            <h1 className="text-base sm:text-lg font-bold text-white tracking-tight leading-none">
+          <div className="truncate">
+            <h1 className="text-base sm:text-lg font-bold text-white tracking-tight leading-none truncate">
               {settings.poolName}
             </h1>
-            <span className="text-xs text-cyan-400 font-medium">
+            <span className="text-[11px] sm:text-xs text-cyan-400 font-medium truncate block mt-0.5">
               {settings.hostelName}
             </span>
           </div>
@@ -157,15 +157,16 @@ export const StudentEntryPortal: React.FC<StudentEntryPortalProps> = ({
         {isWardenLoggedIn ? (
           <button
             onClick={onOpenWardenLogin}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-emerald-950/80 hover:bg-emerald-900 text-emerald-300 border border-emerald-700/70 transition cursor-pointer"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-emerald-950/80 hover:bg-emerald-900 text-emerald-300 border border-emerald-700/70 transition cursor-pointer flex-shrink-0 active:scale-95"
           >
             <Shield className="w-3.5 h-3.5 text-emerald-400" />
-            <span>Warden (Logged In)</span>
+            <span className="hidden sm:inline">Warden (Logged In)</span>
+            <span className="sm:hidden">Warden</span>
           </button>
         ) : (
           <button
             onClick={onOpenWardenLogin}
-            className="px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-cyan-950/60 hover:bg-cyan-900/80 text-cyan-300 border border-cyan-800/60 transition cursor-pointer"
+            className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-cyan-950/60 hover:bg-cyan-900/80 text-cyan-300 border border-cyan-800/60 transition cursor-pointer flex-shrink-0 active:scale-95"
           >
             Warden
           </button>
@@ -173,10 +174,10 @@ export const StudentEntryPortal: React.FC<StudentEntryPortalProps> = ({
       </header>
 
       {/* Main Content Area */}
-      <main className="w-full max-w-md flex-1 flex flex-col justify-center">
+      <main className="w-full max-w-md flex-1 flex flex-col justify-center my-auto">
         {/* If Just Submitted, Show Confirmation Receipt Card */}
         {lastSubmittedEntry ? (
-          <div className="w-full bg-slate-900/95 border-2 border-emerald-500/50 rounded-3xl p-6 sm:p-8 shadow-2xl shadow-emerald-950/30 text-center animate-fade-in relative overflow-hidden">
+          <div className="w-full bg-slate-900/95 border-2 border-emerald-500/50 rounded-3xl p-5 sm:p-8 shadow-2xl shadow-emerald-950/30 text-center animate-fade-in relative overflow-hidden">
             <div className="w-14 h-14 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl flex items-center justify-center mx-auto mb-4 text-emerald-400">
               <CheckCircle2 className="w-8 h-8" />
             </div>
@@ -196,7 +197,7 @@ export const StudentEntryPortal: React.FC<StudentEntryPortalProps> = ({
               </div>
             )}
 
-            <div className="bg-slate-800/60 border border-slate-700/70 rounded-2xl p-4 my-5 text-left space-y-2 text-xs">
+            <div className="bg-slate-800/60 border border-slate-700/70 rounded-2xl p-4 my-5 text-left space-y-2.5 text-xs">
               <div className="flex justify-between items-center text-slate-300">
                 <span className="text-slate-400">Hostel Room:</span>
                 <span className="font-mono font-bold text-white text-sm bg-slate-900 px-2.5 py-0.5 rounded border border-slate-700">
@@ -218,18 +219,18 @@ export const StudentEntryPortal: React.FC<StudentEntryPortalProps> = ({
 
             <button
               onClick={() => setLastSubmittedEntry(null)}
-              className="w-full flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-semibold py-3 px-4 rounded-xl text-xs transition cursor-pointer"
+              className="w-full min-h-[48px] flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 active:bg-slate-700 text-slate-200 border border-slate-700 font-semibold py-3 px-4 rounded-xl text-xs sm:text-sm transition cursor-pointer active:scale-[0.98]"
             >
-              <RotateCcw className="w-3.5 h-3.5 text-cyan-400" />
+              <RotateCcw className="w-4 h-4 text-cyan-400" />
               <span>Record Another Student Entry</span>
             </button>
           </div>
         ) : (
           /* Simplified Student Entry Form: Name & Room No only */
-          <div className="w-full bg-slate-900/90 border border-cyan-900/40 rounded-3xl p-6 sm:p-7 shadow-2xl backdrop-blur-md">
+          <div className="w-full bg-slate-900/90 border border-cyan-900/40 rounded-3xl p-5 sm:p-7 shadow-2xl backdrop-blur-md">
             {/* Operating Hours Banner */}
             <div
-              className={`rounded-2xl p-4 mb-5 border transition ${
+              className={`rounded-2xl p-3.5 sm:p-4 mb-4 sm:mb-5 border transition ${
                 poolStatus.isOpen
                   ? 'bg-gradient-to-br from-cyan-950/40 to-blue-950/30 border-cyan-800/60'
                   : 'bg-gradient-to-br from-rose-950/40 to-slate-900/60 border-rose-800/60'
@@ -279,20 +280,20 @@ export const StudentEntryPortal: React.FC<StudentEntryPortalProps> = ({
 
               {/* Closed notice */}
               {!poolStatus.isOpen && poolStatus.reason && (
-                <div className="mt-2.5 text-xs text-rose-300 bg-rose-950/60 p-2 rounded-lg border border-rose-800/40 flex items-center gap-1.5">
-                  <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />
-                  <span>{poolStatus.reason}</span>
+                <div className="mt-2.5 text-xs text-rose-300 bg-rose-950/60 p-2.5 rounded-xl border border-rose-800/40 flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 flex-shrink-0 text-rose-400" />
+                  <span className="leading-snug">{poolStatus.reason}</span>
                 </div>
               )}
             </div>
 
             {/* Check-In Header */}
-            <div className="mb-5 text-left">
-              <h2 className="text-xl font-bold text-white tracking-tight">
+            <div className="mb-4 sm:mb-5 text-left">
+              <h2 className="text-lg sm:text-xl font-bold text-white tracking-tight">
                 Swimming Pool Student Entry
               </h2>
-              <p className="text-xs text-slate-400 mt-1">
-                Enter your name and room number to record your pool entry. Time is captured automatically.
+              <p className="text-xs text-slate-400 mt-1 leading-relaxed">
+                Enter your name and room number to check in. Time is captured automatically.
               </p>
             </div>
 
@@ -310,13 +311,13 @@ export const StudentEntryPortal: React.FC<StudentEntryPortalProps> = ({
                 <AlertTriangle className="w-4 h-4 text-rose-400 flex-shrink-0 mt-0.5" />
                 <div>
                   <span className="font-bold text-rose-300 block mb-0.5">
-                    Check-In Closed: {poolStatus.currentBreakName || 'Meal Break / Off Hours'}
+                    Check-In Paused: {poolStatus.currentBreakName || 'Meal Break / Off Hours'}
                   </span>
-                  <span className="text-rose-200 leading-relaxed block">
+                  <span className="text-rose-200 leading-relaxed block text-xs">
                     {poolStatus.reason}
                   </span>
                   <span className="text-[11px] text-rose-400/90 block mt-1">
-                    Entry submissions are paused during this period.
+                    Entry submissions will resume when the break concludes.
                   </span>
                 </div>
               </div>
@@ -325,74 +326,84 @@ export const StudentEntryPortal: React.FC<StudentEntryPortalProps> = ({
             {/* Form: Student Full Name & Hostel Room No ONLY */}
             <form onSubmit={handleSubmitEntry} className="space-y-4 text-left">
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1 flex items-center gap-1.5">
+                <label className="block text-xs font-semibold text-slate-300 mb-1.5 flex items-center gap-1.5">
                   <User className="w-3.5 h-3.5 text-cyan-400" />
                   Student Full Name <span className="text-rose-400">*</span>
                 </label>
                 <input
                   type="text"
                   required
+                  autoComplete="name"
+                  autoCapitalize="words"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  inputMode="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder={poolStatus.isOpen ? 'Enter full name' : `Closed for ${poolStatus.currentBreakName || 'meal interval'}`}
-                  className={`w-full bg-slate-800/80 border ${
+                  placeholder={poolStatus.isOpen ? 'Enter student full name' : `Closed for ${poolStatus.currentBreakName || 'meal interval'}`}
+                  className={`w-full min-h-[46px] bg-slate-800/90 border ${
                     !poolStatus.isOpen
                       ? 'border-slate-800 bg-slate-900/60 opacity-60 cursor-not-allowed text-slate-500'
                       : 'border-slate-700/80 text-white focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400'
-                  } rounded-xl px-3.5 py-2.5 text-sm placeholder-slate-500 focus:outline-none transition`}
+                  } rounded-xl px-3.5 py-2.5 text-base sm:text-sm placeholder-slate-500 focus:outline-none transition`}
                   disabled={!poolStatus.isOpen || isSubmitting}
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1 flex items-center gap-1.5">
+                <label className="block text-xs font-semibold text-slate-300 mb-1.5 flex items-center gap-1.5">
                   <Building className="w-3.5 h-3.5 text-cyan-400" />
                   Hostel Room No <span className="text-rose-400">*</span>
                 </label>
                 <input
                   type="text"
                   required
+                  autoComplete="off"
+                  autoCapitalize="characters"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  inputMode="text"
                   value={roomNumber}
                   onChange={(e) => setRoomNumber(e.target.value)}
-                  placeholder={poolStatus.isOpen ? 'e.g. Room 204' : 'Entries locked'}
-                  className={`w-full bg-slate-800/80 border ${
+                  placeholder={poolStatus.isOpen ? 'e.g. Room 204 or B-102' : 'Entries locked'}
+                  className={`w-full min-h-[46px] bg-slate-800/90 border ${
                     !poolStatus.isOpen
                       ? 'border-slate-800 bg-slate-900/60 opacity-60 cursor-not-allowed text-slate-500'
                       : 'border-slate-700/80 text-white focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400'
-                  } rounded-xl px-3.5 py-2.5 text-sm placeholder-slate-500 focus:outline-none uppercase transition`}
+                  } rounded-xl px-3.5 py-2.5 text-base sm:text-sm placeholder-slate-500 focus:outline-none uppercase transition`}
                   disabled={!poolStatus.isOpen || isSubmitting}
                 />
               </div>
 
               {/* Automatic Time Indication Banner */}
-              <div className="flex items-center justify-between px-3 py-2 bg-slate-800/40 border border-slate-700/50 rounded-xl text-xs text-slate-400">
+              <div className="flex items-center justify-between px-3 py-2.5 bg-slate-800/50 border border-slate-700/60 rounded-xl text-xs text-slate-400">
                 <span className="flex items-center gap-1.5 text-slate-300">
                   <Clock className="w-3.5 h-3.5 text-emerald-400" />
                   Entry Time (Automatic):
                 </span>
-                <span className="font-mono text-emerald-400 font-semibold">{currentTime}</span>
+                <span className="font-mono text-emerald-400 font-semibold text-xs">{currentTime}</span>
               </div>
 
               {/* Submit Button */}
               <button
                 type="submit"
                 disabled={!poolStatus.isOpen || isSubmitting}
-                className={`w-full py-3.5 px-5 rounded-2xl font-bold text-sm tracking-wide transition shadow-xl flex items-center justify-center gap-2 ${
+                className={`w-full min-h-[50px] py-3.5 sm:py-4 px-5 rounded-2xl font-bold text-sm sm:text-base tracking-wide transition shadow-xl flex items-center justify-center gap-2 ${
                   !poolStatus.isOpen
                     ? 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700 select-none'
-                    : 'bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white shadow-cyan-500/25 active:scale-98 cursor-pointer'
+                    : 'bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white shadow-cyan-500/25 active:scale-[0.98] cursor-pointer'
                 }`}
               >
                 {isSubmitting ? (
                   <span>Logging entry...</span>
                 ) : poolStatus.isOpen ? (
                   <>
-                    <CheckCircle2 className="w-4 h-4" />
+                    <CheckCircle2 className="w-5 h-5 text-white" />
                     <span>Record Pool Entry</span>
                   </>
                 ) : (
                   <>
-                    <DoorClosed className="w-4 h-4 text-slate-500" />
+                    <DoorClosed className="w-5 h-5 text-slate-500" />
                     <span>Pool Closed ({poolStatus.currentBreakName || 'Meal Break'})</span>
                   </>
                 )}
@@ -403,10 +414,10 @@ export const StudentEntryPortal: React.FC<StudentEntryPortalProps> = ({
       </main>
 
       {/* Footer */}
-      <footer className="w-full max-w-md text-center py-4 text-slate-500 text-xs mt-4">
+      <footer className="w-full max-w-md text-center py-3 text-slate-500 text-xs mt-3 pb-safe">
         <span>Hostel Swimming Pool Entry Record System</span>
-        <span className="mx-2">•</span>
-        <span>Daily Hours: {poolStatus.openTime12h} to {poolStatus.closeTime12h}</span>
+        <span className="mx-1.5">•</span>
+        <span>Daily: {poolStatus.openTime12h} – {poolStatus.closeTime12h}</span>
       </footer>
     </div>
   );

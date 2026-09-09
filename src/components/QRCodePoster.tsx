@@ -56,12 +56,12 @@ export const QRCodePoster: React.FC<QRCodePosterProps> = ({ settings, onClose })
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm overflow-y-auto print:bg-white print:p-0 print:static print:inset-auto">
-      <div className="relative w-full max-w-lg bg-slate-900 border border-cyan-800/60 rounded-3xl p-6 sm:p-8 shadow-2xl text-slate-100 print:border-0 print:shadow-none print:bg-white print:text-black print:p-8 print:max-w-none">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm overflow-y-auto print:bg-white print:p-0 print:static print:inset-auto pb-safe pt-safe">
+      <div className="relative w-full max-w-lg bg-slate-900 border border-cyan-800/60 rounded-3xl p-4 sm:p-8 shadow-2xl text-slate-100 print:border-0 print:shadow-none print:bg-white print:text-black print:p-8 print:max-w-none my-auto">
         {/* Close Button (Hidden on Print) */}
         <button
           onClick={onClose}
-          className="absolute top-5 right-5 p-2 text-slate-400 hover:text-white rounded-full bg-slate-800/60 hover:bg-slate-700 transition print:hidden"
+          className="absolute top-4 right-4 sm:top-5 sm:right-5 p-2 text-slate-400 hover:text-white rounded-full bg-slate-800/60 hover:bg-slate-700 transition print:hidden active:scale-95 cursor-pointer"
         >
           <X className="w-5 h-5" />
         </button>
@@ -69,34 +69,34 @@ export const QRCodePoster: React.FC<QRCodePosterProps> = ({ settings, onClose })
         {/* Printable Poster Container */}
         <div id="printable-poster" className="flex flex-col items-center text-center">
           {/* Header */}
-          <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 text-xs font-semibold uppercase tracking-wider mb-3 print:border-cyan-800 print:text-cyan-800">
+          <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 text-xs font-semibold uppercase tracking-wider mb-2.5 sm:mb-3 print:border-cyan-800 print:text-cyan-800">
             <Waves className="w-4 h-4 text-cyan-400 print:text-cyan-800" />
             {settings.hostelName || 'Hostel Campus'}
           </div>
 
-          <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-white mb-1 print:text-black">
+          <h2 className="text-xl sm:text-3xl font-bold tracking-tight text-white mb-1 print:text-black">
             {settings.poolName || 'Swimming Pool Entry'}
           </h2>
-          <p className="text-sm text-slate-400 mb-6 print:text-slate-600">
-            Scan with your mobile camera to check in & enter the pool
+          <p className="text-xs sm:text-sm text-slate-400 mb-4 sm:mb-6 print:text-slate-600">
+            Scan with smartphone camera to check in & enter the pool
           </p>
 
           {/* QR Code Frame */}
-          <div className="p-4 bg-white rounded-2xl shadow-xl border-4 border-cyan-500/40 mb-5 print:border-slate-800">
-            <canvas ref={canvasRef} className="rounded-xl w-64 h-64 sm:w-72 sm:h-72 object-contain" />
+          <div className="p-3 sm:p-4 bg-white rounded-2xl shadow-xl border-4 border-cyan-500/40 mb-4 sm:mb-5 print:border-slate-800">
+            <canvas ref={canvasRef} className="rounded-xl w-52 h-52 sm:w-72 sm:h-72 object-contain" />
           </div>
 
           {/* Operating Hours Banner */}
-          <div className="w-full bg-cyan-950/40 border border-cyan-800/40 rounded-2xl p-4 mb-4 text-left print:bg-slate-50 print:border-slate-300">
-            <div className="flex items-center justify-between text-xs text-cyan-400 font-semibold uppercase tracking-wider mb-2 print:text-cyan-900">
+          <div className="w-full bg-cyan-950/40 border border-cyan-800/40 rounded-2xl p-3.5 sm:p-4 mb-3.5 sm:mb-4 text-left print:bg-slate-50 print:border-slate-300">
+            <div className="flex items-center justify-between text-xs text-cyan-400 font-semibold uppercase tracking-wider mb-1.5 sm:mb-2 print:text-cyan-900">
               <span>Pool Operating Hours</span>
-              <span className="bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded-full text-[11px] font-medium print:bg-emerald-100 print:text-emerald-800">
+              <span className="bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-medium print:bg-emerald-100 print:text-emerald-800">
                 Daily
               </span>
             </div>
-            <div className="text-lg font-bold text-white print:text-black flex items-center justify-between">
+            <div className="text-base sm:text-lg font-bold text-white print:text-black flex items-center justify-between">
               <span>{openTime12} – {closeTime12}</span>
-              <span className="text-xs font-normal text-slate-400 print:text-slate-600">
+              <span className="text-[11px] sm:text-xs font-normal text-slate-400 print:text-slate-600">
                 Registration Required
               </span>
             </div>
@@ -112,7 +112,7 @@ export const QRCodePoster: React.FC<QRCodePosterProps> = ({ settings, onClose })
           </div>
 
           {/* Instructions List */}
-          <div className="w-full text-xs text-slate-300 text-left bg-slate-800/40 border border-slate-700/50 rounded-xl p-3 mb-6 print:bg-slate-50 print:text-slate-700 print:border-slate-300">
+          <div className="w-full text-xs text-slate-300 text-left bg-slate-800/40 border border-slate-700/50 rounded-xl p-3 mb-4 sm:mb-6 print:bg-slate-50 print:text-slate-700 print:border-slate-300">
             <ol className="list-decimal list-inside space-y-1">
               <li>Open your smartphone camera or any QR scanner.</li>
               <li>Scan the QR code above and open the link.</li>
@@ -122,7 +122,7 @@ export const QRCodePoster: React.FC<QRCodePosterProps> = ({ settings, onClose })
           </div>
 
           {/* URL Editor (Hidden in Print) */}
-          <div className="w-full mb-6 print:hidden">
+          <div className="w-full mb-4 sm:mb-6 print:hidden">
             <label className="block text-xs font-medium text-slate-400 text-left mb-1.5 flex items-center justify-between">
               <span>Target Website URL (Your Vercel URL):</span>
               <a
@@ -140,7 +140,7 @@ export const QRCodePoster: React.FC<QRCodePosterProps> = ({ settings, onClose })
                 value={targetUrl}
                 onChange={(e) => setTargetUrl(e.target.value)}
                 placeholder="https://your-app.vercel.app"
-                className="w-full bg-slate-800/90 border border-slate-700 rounded-xl px-3.5 py-2 text-xs text-slate-200 focus:outline-none focus:border-cyan-500 transition"
+                className="w-full min-h-[42px] bg-slate-800/90 border border-slate-700 rounded-xl px-3.5 py-2 text-base sm:text-xs text-slate-200 focus:outline-none focus:border-cyan-500 transition font-mono"
               />
             </div>
             <p className="text-[11px] text-slate-400 text-left mt-1">
@@ -149,18 +149,18 @@ export const QRCodePoster: React.FC<QRCodePosterProps> = ({ settings, onClose })
           </div>
 
           {/* Action Buttons (Hidden in Print) */}
-          <div className="flex flex-col sm:flex-row gap-3 w-full print:hidden">
+          <div className="flex flex-col sm:flex-row gap-2.5 sm:gap-3 w-full print:hidden">
             <button
               onClick={handleDownloadQR}
               disabled={!qrGenerated}
-              className="flex-1 flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-medium py-2.5 px-4 rounded-xl text-sm transition"
+              className="flex-1 min-h-[46px] flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-medium py-2.5 px-4 rounded-xl text-xs sm:text-sm transition cursor-pointer active:scale-[0.98]"
             >
               <Download className="w-4 h-4 text-cyan-400" />
               Download QR Image
             </button>
             <button
               onClick={handlePrintPoster}
-              className="flex-1 flex items-center justify-center gap-2 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-medium py-2.5 px-4 rounded-xl text-sm shadow-lg shadow-cyan-500/20 transition"
+              className="flex-1 min-h-[46px] flex items-center justify-center gap-2 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-medium py-2.5 px-4 rounded-xl text-xs sm:text-sm shadow-lg shadow-cyan-500/20 transition cursor-pointer active:scale-[0.98]"
             >
               <Printer className="w-4 h-4" />
               Print Entrance Poster
