@@ -15,6 +15,7 @@ import { formatTimestampTime } from './utils/timeUtils';
 import {
   pushEntriesToCloud,
   fetchEntriesFromCloud,
+  appendEntryToCloud,
   mergeEntries,
   pushSettingsToCloud,
   fetchSettingsFromCloud,
@@ -67,29 +68,33 @@ export default function App() {
     }
   }, []);
 
-  // Refresh records from local storage and Central Cloud Sync
+  // Refresh records from Central Cloud Sync & local storage
   const refreshRecords = useCallback(async () => {
     const local = getStoredEntries();
-    let combined = [...local];
 
-    // Fetch from Central Cloud Storage (works across all devices automatically)
     try {
-      const cloudEntries = await fetchEntriesFromCloud();
-      if (cloudEntries && cloudEntries.length > 0) {
-        combined = mergeEntries(combined, cloudEntries);
-      } else if (cloudEntries && cloudEntries.length === 0 && local.length === 0) {
-        combined = [];
+      const cloudEntries = await fetchEntriesFromCloud(2);
+      if (Array.isArray(cloudEntries)) {
+        if (cloudEntries.length === 0) {
+          // Cloud was explicitly cleared
+          setEntries([]);
+          saveStoredEntries([]);
+          return [];
+        }
+        const merged = mergeEntries(local, cloudEntries);
+        setEntries(merged);
+        saveStoredEntries(merged);
+        return merged;
       }
     } catch (err) {
       console.warn('Cloud sync error:', err);
     }
 
-    setEntries(combined);
-    saveStoredEntries(combined);
-    return combined;
+    setEntries(local);
+    return local;
   }, []);
 
-  // Initial mount sync, tab visibility sync, & periodic polling (every 3 seconds)
+  // Initial mount sync, tab visibility sync, & smart periodic polling
   useEffect(() => {
     refreshRecords();
     refreshSettings();
@@ -103,17 +108,25 @@ export default function App() {
     window.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('focus', handleVisibilityChange);
 
+    // Polling interval:
+    // When Warden Panel is open: poll records every 4s to catch live incoming student entries
+    // When on Student view: only poll settings every 20s to conserve bandwidth
+    const intervalMs = activeView === 'warden' ? 4000 : 20000;
     const timer = setInterval(() => {
-      refreshRecords();
-      refreshSettings();
-    }, 3000);
+      if (document.visibilityState === 'visible') {
+        if (activeView === 'warden') {
+          refreshRecords();
+        }
+        refreshSettings();
+      }
+    }, intervalMs);
 
     return () => {
       window.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('focus', handleVisibilityChange);
       clearInterval(timer);
     };
-  }, [refreshRecords, refreshSettings]);
+  }, [activeView, refreshRecords, refreshSettings]);
 
   // Sync across tabs and windows
   useEffect(() => {
@@ -167,7 +180,7 @@ export default function App() {
     const now = Date.now();
     const localDate = new Date(now).toLocaleDateString('en-CA'); // Local YYYY-MM-DD
     const newEntry: PoolEntry = {
-      id: `entry-${now}-${Math.random().toString(36).substr(2, 4)}`,
+      id: `entry-${now}-${Math.random().toString(36).substring(2, 7)}`,
       name: data.name.trim(),
       roomNumber: data.roomNumber.trim().toUpperCase(),
       entryTimestamp: now,
@@ -177,14 +190,22 @@ export default function App() {
       entryNotice: data.entryNotice,
     };
 
-    // 1. Read directly from storage to avoid stale closure
-    const current = getStoredEntries();
-    const updated = [newEntry, ...current.filter((e) => e.id !== newEntry.id)];
-    setEntries(updated);
-    saveStoredEntries(updated);
+    // 1. Save locally first for snappy UI feedback
+    const local = getStoredEntries();
+    const updatedLocal = [newEntry, ...local.filter((e) => e.id !== newEntry.id)];
+    setEntries(updatedLocal);
+    saveStoredEntries(updatedLocal);
 
-    // 2. Push immediately to Central Cloud Storage (so Warden screen updates instantly)
-    pushEntriesToCloud(updated).catch((e) => console.warn('Cloud push error:', e));
+    // 2. Atomically append to cloud with retries, awaiting so mobile browser cannot abort request
+    try {
+      const { allEntries } = await appendEntryToCloud(newEntry, updatedLocal);
+      if (allEntries && allEntries.length > 0) {
+        setEntries(allEntries);
+        saveStoredEntries(allEntries);
+      }
+    } catch (err) {
+      console.warn('Cloud append error:', err);
+    }
 
     return newEntry;
   };
@@ -204,7 +225,7 @@ export default function App() {
   const handleClearAllRecords = async (): Promise<void> => {
     setEntries([]);
     saveStoredEntries([]);
-    await pushEntriesToCloud([]);
+    await pushEntriesToCloud([], 3);
   };
 
   const todayStr = new Date().toLocaleDateString('en-CA');

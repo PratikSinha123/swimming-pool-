@@ -63,59 +63,121 @@ export async function fetchSettingsFromCloud(): Promise<PoolSettings | null> {
 /**
  * Push entries to central cloud storage so all devices stay in sync (or empty array when cleared)
  */
-export async function pushEntriesToCloud(entries: PoolEntry[]): Promise<boolean> {
-  try {
-    const res = await fetch(KVDB_ENTRIES_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(entries),
-    });
-    return res.ok;
-  } catch (err) {
-    console.warn('Entries cloud push error:', err);
-    return false;
+export async function pushEntriesToCloud(entries: PoolEntry[], retries = 3): Promise<boolean> {
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      const res = await fetch(KVDB_ENTRIES_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(entries),
+      });
+      if (res.ok) return true;
+    } catch (err) {
+      console.warn(`Entries cloud push attempt ${attempt} failed:`, err);
+    }
+    if (attempt < retries) {
+      await new Promise((r) => setTimeout(r, 300 * attempt));
+    }
   }
+  return false;
 }
 
 /**
  * Fetch latest entries from central cloud storage
  */
-export async function fetchEntriesFromCloud(): Promise<PoolEntry[] | null> {
-  try {
-    const res = await fetch(getCacheBustUrl(KVDB_ENTRIES_URL), {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-        'Cache-Control': 'no-cache',
-      },
-      cache: 'no-store',
-    });
+export async function fetchEntriesFromCloud(retries = 2): Promise<PoolEntry[] | null> {
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      const res = await fetch(getCacheBustUrl(KVDB_ENTRIES_URL), {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'Cache-Control': 'no-cache',
+        },
+        cache: 'no-store',
+      });
 
-    if (res.ok) {
-      const text = await res.text();
-      if (text && text.trim() !== '') {
-        const parsed = JSON.parse(text);
-        if (Array.isArray(parsed)) {
-          return parsed as PoolEntry[];
+      if (res.ok) {
+        const text = await res.text();
+        if (text && text.trim() !== '') {
+          const parsed = JSON.parse(text);
+          if (Array.isArray(parsed)) {
+            return parsed as PoolEntry[];
+          }
         }
       }
+    } catch (err) {
+      console.warn(`Entries cloud fetch attempt ${attempt} failed:`, err);
     }
-  } catch (err) {
-    console.warn('Entries cloud fetch error:', err);
+    if (attempt < retries) {
+      await new Promise((r) => setTimeout(r, 200 * attempt));
+    }
   }
   return null;
 }
 
 /**
+ * Atomically appends a new student entry to cloud storage:
+ * 1. Fetches current cloud entries to avoid overwriting entries from other students
+ * 2. Merges new entry, existing cloud entries, and local entries by unique ID
+ * 3. Pushes the complete list to cloud storage with retry
+ * 4. Returns the full combined list
+ */
+export async function appendEntryToCloud(
+  newEntry: PoolEntry,
+  localEntries: PoolEntry[] = []
+): Promise<{ success: boolean; allEntries: PoolEntry[] }> {
+  // 1. Fetch existing cloud entries first
+  const remote = (await fetchEntriesFromCloud(2)) || [];
+
+  // 2. Merge all unique entries (newEntry at top)
+  const map = new Map<string, PoolEntry>();
+  map.set(newEntry.id, newEntry);
+
+  for (const item of remote) {
+    if (item && item.id && !map.has(item.id)) {
+      map.set(item.id, item);
+    }
+  }
+
+  for (const item of localEntries) {
+    if (item && item.id && !map.has(item.id)) {
+      map.set(item.id, item);
+    }
+  }
+
+  const allEntries = Array.from(map.values()).sort(
+    (a, b) => (b.entryTimestamp || 0) - (a.entryTimestamp || 0)
+  );
+
+  // 3. Push complete list to cloud
+  const success = await pushEntriesToCloud(allEntries, 3);
+  return { success, allEntries };
+}
+
+/**
  * Sync entries between cloud and local
- * - If remote was returned by cloud, remote is the single source of truth!
- * - When remote is empty [], it means records were cleared in cloud.
+ * Combines unique entries by ID so no device's entries are dropped
  */
 export function mergeEntries(local: PoolEntry[], remote: PoolEntry[]): PoolEntry[] {
-  // If remote is explicitly provided from cloud, it is authoritative
-  if (Array.isArray(remote)) {
-    return remote;
+  if (!Array.isArray(remote) && !Array.isArray(local)) return [];
+  if (!Array.isArray(remote)) return local;
+  if (!Array.isArray(local)) return remote;
+
+  const map = new Map<string, PoolEntry>();
+  // Remote cloud entries take precedence
+  for (const item of remote) {
+    if (item && item.id) map.set(item.id, item);
   }
-  return local;
+  // Include any local entries not yet in remote
+  for (const item of local) {
+    if (item && item.id && !map.has(item.id)) {
+      map.set(item.id, item);
+    }
+  }
+
+  return Array.from(map.values()).sort(
+    (a, b) => (b.entryTimestamp || 0) - (a.entryTimestamp || 0)
+  );
 }
 

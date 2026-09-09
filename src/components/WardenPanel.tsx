@@ -517,6 +517,31 @@ export const WardenPanel: React.FC<WardenPanelProps> = ({
                   </span>
                 </div>
 
+                <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                  <span className="text-[11px] text-slate-400 mr-1">Quick Presets:</span>
+                  <button
+                    type="button"
+                    onClick={() => setDraftSettings({ ...draftSettings, openTime: '06:00', closeTime: '23:59' })}
+                    className="px-2.5 py-1 text-[11px] rounded-lg bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-slate-700 transition cursor-pointer"
+                  >
+                    Open till 11:59 PM
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDraftSettings({ ...draftSettings, openTime: '06:00', closeTime: '22:30' })}
+                    className="px-2.5 py-1 text-[11px] rounded-lg bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-slate-700 transition cursor-pointer"
+                  >
+                    Open till 10:30 PM
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDraftSettings({ ...draftSettings, openTime: '06:00', closeTime: '18:00' })}
+                    className="px-2.5 py-1 text-[11px] rounded-lg bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-slate-700 transition cursor-pointer"
+                  >
+                    Open till 6:00 PM
+                  </button>
+                </div>
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 sm:gap-4">
                   <div>
                     <label className="block text-xs font-semibold text-slate-300 mb-1.5">
@@ -536,7 +561,7 @@ export const WardenPanel: React.FC<WardenPanelProps> = ({
 
                   <div>
                     <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                      Closing Time (Evening)
+                      Closing Time (Night / Evening)
                     </label>
                     <input
                       type="time"
@@ -548,6 +573,12 @@ export const WardenPanel: React.FC<WardenPanelProps> = ({
                     <span className="block text-[11px] text-slate-400 mt-1">
                       Converts to: <strong>{format24To12(draftSettings.closeTime)}</strong>
                     </span>
+                    {parseInt(draftSettings.closeTime?.split(':')[0] || '0', 10) >= 11 &&
+                      parseInt(draftSettings.closeTime?.split(':')[0] || '0', 10) <= 14 && (
+                        <span className="block text-[10px] text-amber-300 bg-amber-950/60 p-1.5 rounded-md border border-amber-800/50 mt-1">
+                          ⚠️ Note: {format24To12(draftSettings.closeTime)} is in the afternoon. For late night, use 22:30 (10:30 PM) or 23:59 (11:59 PM).
+                        </span>
+                      )}
                   </div>
                 </div>
 

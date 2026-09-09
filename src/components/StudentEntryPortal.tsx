@@ -395,7 +395,10 @@ export const StudentEntryPortal: React.FC<StudentEntryPortalProps> = ({
                 }`}
               >
                 {isSubmitting ? (
-                  <span>Logging entry...</span>
+                  <div className="flex items-center gap-2">
+                    <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+                    <span>Saving entry to cloud...</span>
+                  </div>
                 ) : poolStatus.isOpen ? (
                   <>
                     <CheckCircle2 className="w-5 h-5 text-white" />
