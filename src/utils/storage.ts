@@ -1,7 +1,7 @@
 import type { PoolEntry, PoolSettings } from '../types';
 
-const SETTINGS_KEY = 'hostel_pool_settings';
-const ENTRIES_KEY = 'hostel_pool_entries';
+const SETTINGS_KEY = 'hostel_pool_settings_v4';
+const ENTRIES_KEY = 'hostel_pool_entries_v4';
 
 export const DEFAULT_SETTINGS: PoolSettings = {
   poolName: 'Hostel Swimming Pool',
@@ -9,7 +9,7 @@ export const DEFAULT_SETTINGS: PoolSettings = {
   openTime: '06:00', // 6:00 AM
   closeTime: '17:30', // 5:30 PM
   isOpenManually: true,
-  wardenPin: '1234',
+  wardenPin: 'Ramesh1234',
   googleSheetsWebhookUrl: '',
   appUrl: typeof window !== 'undefined' ? window.location.origin : '',
 };
@@ -19,7 +19,11 @@ export function getStoredSettings(): PoolSettings {
   try {
     const raw = localStorage.getItem(SETTINGS_KEY);
     if (!raw) return DEFAULT_SETTINGS;
-    return { ...DEFAULT_SETTINGS, ...JSON.parse(raw) };
+    const parsed = JSON.parse(raw);
+    if (parsed.wardenPin === '1234') {
+      parsed.wardenPin = 'Ramesh1234';
+    }
+    return { ...DEFAULT_SETTINGS, ...parsed };
   } catch (err) {
     console.error('Failed to parse settings:', err);
     return DEFAULT_SETTINGS;

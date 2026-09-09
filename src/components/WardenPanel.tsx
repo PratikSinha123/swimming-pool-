@@ -505,18 +505,18 @@ export const WardenPanel: React.FC<WardenPanelProps> = ({
 
               <div>
                 <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                  Warden Panel Access PIN
+                  Warden Access Passcode
                 </label>
                 <input
                   type="password"
                   required
-                  maxLength={8}
+                  maxLength={32}
                   value={draftSettings.wardenPin}
                   onChange={(e) => setDraftSettings({ ...draftSettings, wardenPin: e.target.value })}
                   className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white font-mono focus:outline-none focus:border-cyan-400 transition"
                 />
                 <span className="block text-[11px] text-slate-400 mt-1">
-                  Default: <strong>1234</strong>. Change this to protect warden access.
+                  Current passcode: <strong>Ramesh1234</strong>. Change this anytime to update your access passcode.
                 </span>
               </div>
 

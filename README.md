@@ -21,7 +21,7 @@ Built with **React 19**, **Vite**, **Tailwind CSS**, and **TypeScript**, ready f
   - Alerts student when session time limit or pool closing time is approaching.
   - One-tap **"Exit Pool / Check Out"** button to record exit time.
 
-### 2. 🛡️ Warden Admin Panel (PIN Protected: Default `1234`)
+### 2. 🛡️ Warden Admin Panel (Passcode Protected: Default `Ramesh1234`)
 - **Live Occupancy Monitoring**:
   - Real-time count of students currently in the pool.
   - Capacity progress bar against maximum pool limit.

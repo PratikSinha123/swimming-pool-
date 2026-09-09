@@ -17,7 +17,7 @@ export const WardenAuthModal: React.FC<WardenAuthModalProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (pin === (correctPin || '1234')) {
+    if (pin === (correctPin || 'Ramesh1234')) {
       onSuccess();
     } else {
       setError(true);
@@ -41,7 +41,7 @@ export const WardenAuthModal: React.FC<WardenAuthModalProps> = ({
 
         <h3 className="text-lg font-bold text-white mb-1">Warden Verification</h3>
         <p className="text-xs text-slate-400 mb-6">
-          Enter your authorized PIN to access the management dashboard.
+          Enter your authorized passcode to access the management dashboard.
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -50,10 +50,10 @@ export const WardenAuthModal: React.FC<WardenAuthModalProps> = ({
               <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
                 type="password"
-                maxLength={8}
+                maxLength={32}
                 autoFocus
                 required
-                placeholder="Enter PIN"
+                placeholder="Enter Passcode"
                 value={pin}
                 onChange={(e) => {
                   setPin(e.target.value);
@@ -61,12 +61,12 @@ export const WardenAuthModal: React.FC<WardenAuthModalProps> = ({
                 }}
                 className={`w-full bg-slate-800 border ${
                   error ? 'border-rose-500 text-rose-300' : 'border-slate-700 text-white'
-                } rounded-xl pl-10 pr-4 py-2.5 text-sm font-mono tracking-widest text-center focus:outline-none focus:border-cyan-400 transition`}
+                } rounded-xl pl-10 pr-4 py-2.5 text-sm font-mono text-center focus:outline-none focus:border-cyan-400 transition`}
               />
             </div>
             {error && (
               <span className="block text-[11px] text-rose-400 mt-1.5 font-medium">
-                Incorrect PIN. Please try again.
+                Incorrect passcode. Please try again.
               </span>
             )}
           </div>
