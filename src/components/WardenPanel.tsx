@@ -15,6 +15,7 @@ import {
   Copy,
   UserCheck,
   Calendar,
+  RotateCw,
 } from 'lucide-react';
 
 interface WardenPanelProps {
@@ -23,6 +24,7 @@ interface WardenPanelProps {
   onUpdateSettings: (newSettings: PoolSettings) => void;
   onClosePanel: () => void;
   onOpenQRPoster: () => void;
+  onRefreshRecords: () => void;
 }
 
 export const WardenPanel: React.FC<WardenPanelProps> = ({
@@ -31,6 +33,7 @@ export const WardenPanel: React.FC<WardenPanelProps> = ({
   onUpdateSettings,
   onClosePanel,
   onOpenQRPoster,
+  onRefreshRecords,
 }) => {
   // Tabs: 'records' | 'settings' | 'sheets'
   const [activeTab, setActiveTab] = useState<'records' | 'settings' | 'sheets'>('records');
@@ -38,6 +41,7 @@ export const WardenPanel: React.FC<WardenPanelProps> = ({
   // Local settings draft form
   const [draftSettings, setDraftSettings] = useState<PoolSettings>({ ...settings });
   const [settingsSaved, setSettingsSaved] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // History search & filter
   const [searchQuery, setSearchQuery] = useState('');
@@ -48,6 +52,12 @@ export const WardenPanel: React.FC<WardenPanelProps> = ({
 
   const todayStr = new Date().toISOString().split('T')[0];
   const todayEntries = entries.filter((e) => e.dateStr === todayStr);
+
+  const handleManualRefresh = async () => {
+    setIsRefreshing(true);
+    await onRefreshRecords();
+    setTimeout(() => setIsRefreshing(false), 500);
+  };
 
   const handleSaveSettings = (e: React.FormEvent) => {
     e.preventDefault();
@@ -68,14 +78,12 @@ export const WardenPanel: React.FC<WardenPanelProps> = ({
       return;
     }
 
-    const headers = ['Record ID', 'Date', 'Student Name', 'Room No', 'Student ID', 'Phone', 'Entry Time'];
+    const headers = ['Record ID', 'Date', 'Student Name', 'Hostel Room No', 'Entry Time'];
     const rows = entries.map((e) => [
       e.id,
       e.dateStr,
       `"${e.name.replace(/"/g, '""')}"`,
       `"${e.roomNumber}"`,
-      `"${e.studentId}"`,
-      `"${e.phone || ''}"`,
       `"${e.entryTimeFormatted}"`,
     ]);
 
@@ -83,7 +91,7 @@ export const WardenPanel: React.FC<WardenPanelProps> = ({
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement('a');
     link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `swimming_pool_entry_records_${new Date().toISOString().split('T')[0]}.csv`);
+    link.setAttribute('download', `swimming_pool_entries_${new Date().toISOString().split('T')[0]}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -93,8 +101,7 @@ export const WardenPanel: React.FC<WardenPanelProps> = ({
   const filteredEntries = entries.filter((item) => {
     const matchesSearch =
       item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.roomNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.studentId.toLowerCase().includes(searchQuery.toLowerCase());
+      item.roomNumber.toLowerCase().includes(searchQuery.toLowerCase());
 
     if (dateFilter === 'today') {
       return matchesSearch && item.dateStr === todayStr;
@@ -125,15 +132,23 @@ export const WardenPanel: React.FC<WardenPanelProps> = ({
 
         <div className="flex items-center gap-2.5">
           <button
+            onClick={handleManualRefresh}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xl transition cursor-pointer"
+            title="Refresh latest entries from records"
+          >
+            <RotateCw className={`w-3.5 h-3.5 text-cyan-400 ${isRefreshing ? 'animate-spin' : ''}`} />
+            <span>Refresh</span>
+          </button>
+          <button
             onClick={onOpenQRPoster}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-cyan-950/80 hover:bg-cyan-900 text-cyan-300 border border-cyan-800 rounded-xl transition"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-cyan-950/80 hover:bg-cyan-900 text-cyan-300 border border-cyan-800 rounded-xl transition cursor-pointer"
           >
             <QrCode className="w-3.5 h-3.5" />
             <span>Entrance QR Code</span>
           </button>
           <button
             onClick={onClosePanel}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xl transition"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xl transition cursor-pointer"
           >
             <LogOut className="w-3.5 h-3.5 text-rose-400" />
             <span>Close Panel</span>
@@ -145,7 +160,7 @@ export const WardenPanel: React.FC<WardenPanelProps> = ({
       <div className="flex items-center gap-2 px-4 sm:px-8 py-2 border-b border-slate-800 bg-slate-900/40 overflow-x-auto flex-shrink-0">
         <button
           onClick={() => setActiveTab('records')}
-          className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-medium transition ${
+          className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-medium transition cursor-pointer ${
             activeTab === 'records'
               ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40'
               : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
@@ -157,7 +172,7 @@ export const WardenPanel: React.FC<WardenPanelProps> = ({
 
         <button
           onClick={() => setActiveTab('settings')}
-          className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-medium transition ${
+          className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-medium transition cursor-pointer ${
             activeTab === 'settings'
               ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40'
               : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
@@ -169,7 +184,7 @@ export const WardenPanel: React.FC<WardenPanelProps> = ({
 
         <button
           onClick={() => setActiveTab('sheets')}
-          className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-medium transition ${
+          className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-medium transition cursor-pointer ${
             activeTab === 'sheets'
               ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40'
               : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
@@ -181,9 +196,9 @@ export const WardenPanel: React.FC<WardenPanelProps> = ({
       </div>
 
       {/* Tab Content */}
-      <div className="flex-1 overflow-y-auto p-4 sm:p-8 max-w-6xl w-full mx-auto">
+      <div className="flex-1 overflow-y-auto p-4 sm:p-8 max-w-5xl w-full mx-auto">
         {/* ========================================================
-            TAB 1: STUDENT ENTRY RECORDS (RECORD HOLDING)
+            TAB 1: STUDENT ENTRY RECORDS
             ======================================================== */}
         {activeTab === 'records' && (
           <div className="space-y-6">
@@ -235,11 +250,11 @@ export const WardenPanel: React.FC<WardenPanelProps> = ({
                 </div>
                 <div className="text-lg font-bold text-white tracking-tight mt-1">
                   {settings.googleSheetsWebhookUrl ? (
-                    <span className="text-emerald-400 flex items-center gap-1.5">
+                    <span className="text-emerald-400 flex items-center gap-1.5 text-sm font-semibold">
                       <CheckCircle className="w-4 h-4" /> Connected
                     </span>
                   ) : (
-                    <span className="text-amber-400 flex items-center gap-1.5">
+                    <span className="text-amber-400 flex items-center gap-1.5 text-sm font-semibold">
                       <AlertTriangle className="w-4 h-4" /> Ready to Link
                     </span>
                   )}
@@ -259,7 +274,7 @@ export const WardenPanel: React.FC<WardenPanelProps> = ({
                   <QrCode className="w-4 h-4 text-cyan-400" />
                 </div>
                 <div className="text-lg font-bold text-white tracking-tight mt-1">
-                  Scannable Poster
+                  Entrance Poster
                 </div>
                 <button
                   onClick={onOpenQRPoster}
@@ -276,20 +291,29 @@ export const WardenPanel: React.FC<WardenPanelProps> = ({
                 <div>
                   <h2 className="text-lg font-bold text-white flex items-center gap-2">
                     <UserCheck className="w-5 h-5 text-cyan-400" />
-                    Hostel Student Entry Records
+                    Student Swimming Pool Entry Log
                   </h2>
                   <p className="text-xs text-slate-400 mt-0.5">
-                    Permanent holding records of student entries with room number, student ID, and timestamps.
+                    Records showing Student Name, Hostel Room No, Date, and Automatic Entry Time.
                   </p>
                 </div>
 
-                <button
-                  onClick={handleExportCSV}
-                  className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold bg-emerald-950/80 hover:bg-emerald-900 text-emerald-300 border border-emerald-700/80 rounded-xl transition self-start sm:self-auto"
-                >
-                  <Download className="w-3.5 h-3.5" />
-                  <span>Download CSV Records</span>
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleManualRefresh}
+                    className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xl transition cursor-pointer"
+                  >
+                    <RotateCw className={`w-3.5 h-3.5 text-cyan-400 ${isRefreshing ? 'animate-spin' : ''}`} />
+                    <span>Refresh</span>
+                  </button>
+                  <button
+                    onClick={handleExportCSV}
+                    className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold bg-emerald-950/80 hover:bg-emerald-900 text-emerald-300 border border-emerald-700/80 rounded-xl transition cursor-pointer"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    <span>Export CSV</span>
+                  </button>
+                </div>
               </div>
 
               {/* Filters */}
@@ -298,7 +322,7 @@ export const WardenPanel: React.FC<WardenPanelProps> = ({
                   <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                   <input
                     type="text"
-                    placeholder="Search by student name, room number, or roll ID..."
+                    placeholder="Search by student name or room number..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="w-full bg-slate-900 border border-slate-800 rounded-xl pl-9 pr-4 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 transition"
@@ -308,7 +332,7 @@ export const WardenPanel: React.FC<WardenPanelProps> = ({
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => setDateFilter('all')}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer ${
                       dateFilter === 'all'
                         ? 'bg-cyan-900 text-cyan-200'
                         : 'bg-slate-900 text-slate-400 hover:text-white'
@@ -318,7 +342,7 @@ export const WardenPanel: React.FC<WardenPanelProps> = ({
                   </button>
                   <button
                     onClick={() => setDateFilter('today')}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer ${
                       dateFilter === 'today'
                         ? 'bg-cyan-900 text-cyan-200'
                         : 'bg-slate-900 text-slate-400 hover:text-white'
@@ -329,40 +353,38 @@ export const WardenPanel: React.FC<WardenPanelProps> = ({
                 </div>
               </div>
 
-              {/* Table */}
+              {/* Clean Table: Student Name, Room No, Date, Entry Time */}
               <div className="border border-slate-800 rounded-xl overflow-hidden">
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-xs">
                     <thead className="bg-slate-800/80 text-slate-300 font-semibold border-b border-slate-700">
                       <tr>
+                        <th className="p-3.5">#</th>
                         <th className="p-3.5">Student Name</th>
                         <th className="p-3.5">Hostel Room No</th>
-                        <th className="p-3.5">Student / Roll ID</th>
-                        <th className="p-3.5">Phone Number</th>
                         <th className="p-3.5">Date</th>
-                        <th className="p-3.5">Entry Time</th>
+                        <th className="p-3.5">Automatic Entry Time</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-800/60">
                       {filteredEntries.length === 0 ? (
                         <tr>
-                          <td colSpan={6} className="p-8 text-center text-slate-500">
-                            No student entry records found.
+                          <td colSpan={5} className="p-8 text-center text-slate-500">
+                            No student entry records found. When students scan the QR code and submit, their entries will appear here.
                           </td>
                         </tr>
                       ) : (
-                        filteredEntries.map((item) => (
+                        filteredEntries.map((item, index) => (
                           <tr key={item.id} className="hover:bg-slate-800/30 transition">
-                            <td className="p-3.5 font-medium text-white">{item.name}</td>
+                            <td className="p-3.5 text-slate-500 font-mono">{index + 1}</td>
+                            <td className="p-3.5 font-bold text-white text-sm">{item.name}</td>
                             <td className="p-3.5">
-                              <span className="font-mono bg-cyan-950/80 text-cyan-300 px-2 py-0.5 rounded border border-cyan-800/60 font-semibold">
+                              <span className="font-mono bg-cyan-950/80 text-cyan-300 px-2.5 py-1 rounded-md border border-cyan-800/60 font-bold text-xs">
                                 {item.roomNumber}
                               </span>
                             </td>
-                            <td className="p-3.5 font-mono text-slate-300">{item.studentId}</td>
-                            <td className="p-3.5 text-slate-400">{item.phone || '—'}</td>
                             <td className="p-3.5 text-slate-400">{item.dateStr}</td>
-                            <td className="p-3.5 text-emerald-400 font-medium">
+                            <td className="p-3.5 text-emerald-400 font-semibold text-sm">
                               {item.entryTimeFormatted}
                             </td>
                           </tr>
@@ -387,7 +409,7 @@ export const WardenPanel: React.FC<WardenPanelProps> = ({
                 Pool Operating Hours & Settings
               </h2>
               <p className="text-xs text-slate-400 mt-1">
-                Configure pool opening and closing hours, titles, and warden security PIN.
+                Configure daily opening and closing hours, titles, and warden security passcode.
               </p>
             </div>
 
@@ -462,7 +484,7 @@ export const WardenPanel: React.FC<WardenPanelProps> = ({
                 <button
                   type="button"
                   onClick={() => setDraftSettings({ ...draftSettings, isOpenManually: !draftSettings.isOpenManually })}
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition ${
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition cursor-pointer ${
                     draftSettings.isOpenManually ? 'bg-cyan-500' : 'bg-slate-700'
                   }`}
                 >
@@ -474,7 +496,7 @@ export const WardenPanel: React.FC<WardenPanelProps> = ({
                 </button>
               </div>
 
-              {/* NAMES & WARDEN PIN */}
+              {/* NAMES & WARDEN PASSCODE */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-slate-300 mb-1.5">
@@ -545,7 +567,7 @@ export const WardenPanel: React.FC<WardenPanelProps> = ({
                     Google Sheets Automatic Recording
                   </h2>
                   <p className="text-xs text-slate-400 mt-1">
-                    Every student entry automatically creates a new row in your Google Sheet with Name, Hostel Room No, Student ID, Phone, and Time.
+                    Every student entry automatically creates a new row in your Google Sheet with Name, Hostel Room No, and Automatic Time.
                   </p>
                 </div>
 
@@ -590,7 +612,7 @@ export const WardenPanel: React.FC<WardenPanelProps> = ({
                       onUpdateSettings(draftSettings);
                       alert('Google Sheets Webhook URL saved!');
                     }}
-                    className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl transition"
+                    className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl transition cursor-pointer"
                   >
                     Save URL
                   </button>
@@ -601,11 +623,11 @@ export const WardenPanel: React.FC<WardenPanelProps> = ({
               <div className="bg-slate-800/80 border border-slate-700 rounded-2xl p-4">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-xs font-bold text-slate-200">
-                    Google Apps Script Code
+                    Google Apps Script Code (Supports Entry Recording & Live Sync)
                   </span>
                   <button
                     onClick={handleCopyAppsScript}
-                    className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/30 transition"
+                    className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/30 transition cursor-pointer"
                   >
                     {copiedCode ? (
                       <>

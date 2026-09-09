@@ -1,24 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import confetti from 'canvas-confetti';
 import type { PoolEntry, PoolSettings, PoolOperatingStatus } from '../types';
-import { checkPoolStatus } from '../utils/timeUtils';
+import { checkPoolStatus, formatTimestampTime } from '../utils/timeUtils';
 import {
   Waves,
   User,
   DoorClosed,
   CheckCircle2,
   AlertTriangle,
-  ShieldCheck,
-  Phone,
-  IdCard,
   Building,
   RotateCcw,
+  Clock,
 } from 'lucide-react';
 
 interface StudentEntryPortalProps {
   settings: PoolSettings;
   todayEntriesCount: number;
-  onCheckIn: (entry: Omit<PoolEntry, 'id' | 'entryTimestamp' | 'entryTimeFormatted' | 'dateStr'>) => Promise<PoolEntry | null>;
+  onCheckIn: (entry: { name: string; roomNumber: string }) => Promise<PoolEntry | null>;
   onOpenWardenLogin: () => void;
 }
 
@@ -28,31 +26,29 @@ export const StudentEntryPortal: React.FC<StudentEntryPortalProps> = ({
   onCheckIn,
   onOpenWardenLogin,
 }) => {
-  // Live status update
+  // Live status & current time update every second
+  const [currentTime, setCurrentTime] = useState<string>(() => formatTimestampTime(Date.now()));
   const [poolStatus, setPoolStatus] = useState<PoolOperatingStatus>(() =>
     checkPoolStatus(settings.openTime, settings.closeTime, settings.isOpenManually)
   );
 
-  // Form states
+  // Form states - ONLY Student Name & Room No as requested
   const [name, setName] = useState('');
   const [roomNumber, setRoomNumber] = useState('');
-  const [studentId, setStudentId] = useState('');
-  const [phone, setPhone] = useState('');
-  const [agreedToRules, setAgreedToRules] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
   // Last submitted record (confirmation banner)
   const [lastSubmittedEntry, setLastSubmittedEntry] = useState<PoolEntry | null>(null);
 
-  // Periodic status re-check
+  // Live timer tick
   useEffect(() => {
-    const update = () => {
+    const timer = setInterval(() => {
+      const now = Date.now();
+      setCurrentTime(formatTimestampTime(now));
       setPoolStatus(checkPoolStatus(settings.openTime, settings.closeTime, settings.isOpenManually));
-    };
-    update();
-    const interval = setInterval(update, 10000);
-    return () => clearInterval(interval);
+    }, 1000);
+    return () => clearInterval(timer);
   }, [settings]);
 
   const handleSubmitEntry = async (e: React.FormEvent) => {
@@ -60,19 +56,11 @@ export const StudentEntryPortal: React.FC<StudentEntryPortalProps> = ({
     setFormError(null);
 
     if (!name.trim()) {
-      setFormError('Please enter your full name.');
+      setFormError('Please enter student name.');
       return;
     }
     if (!roomNumber.trim()) {
-      setFormError('Please enter your hostel room number (e.g. B-204).');
-      return;
-    }
-    if (!studentId.trim()) {
-      setFormError('Please enter your Student ID or Roll number.');
-      return;
-    }
-    if (!agreedToRules) {
-      setFormError('Please agree to the pool hygiene and safety rules.');
+      setFormError('Please enter hostel room number.');
       return;
     }
 
@@ -86,8 +74,6 @@ export const StudentEntryPortal: React.FC<StudentEntryPortalProps> = ({
       const created = await onCheckIn({
         name: name.trim(),
         roomNumber: roomNumber.trim().toUpperCase(),
-        studentId: studentId.trim().toUpperCase(),
-        phone: phone.trim(),
       });
 
       if (created) {
@@ -100,9 +86,6 @@ export const StudentEntryPortal: React.FC<StudentEntryPortalProps> = ({
         setLastSubmittedEntry(created);
         setName('');
         setRoomNumber('');
-        setStudentId('');
-        setPhone('');
-        setAgreedToRules(false);
       }
     } catch (err: any) {
       setFormError(err.message || 'Failed to record entry. Please try again.');
@@ -114,7 +97,7 @@ export const StudentEntryPortal: React.FC<StudentEntryPortalProps> = ({
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col items-center justify-between p-4 sm:p-6 selection:bg-cyan-500 selection:text-white">
       {/* Top Navbar */}
-      <header className="w-full max-w-xl flex items-center justify-between py-2 border-b border-cyan-900/40 mb-6">
+      <header className="w-full max-w-md flex items-center justify-between py-2 border-b border-cyan-900/40 mb-6">
         <div className="flex items-center gap-2.5">
           <div className="p-2 rounded-xl bg-gradient-to-tr from-cyan-500 to-blue-600 shadow-md shadow-cyan-500/20">
             <Waves className="w-5 h-5 text-white animate-pulse" />
@@ -129,14 +112,12 @@ export const StudentEntryPortal: React.FC<StudentEntryPortalProps> = ({
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          <button
-            onClick={onOpenWardenLogin}
-            className="px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-cyan-950/60 hover:bg-cyan-900/80 text-cyan-300 border border-cyan-800/60 transition cursor-pointer"
-          >
-            Warden
-          </button>
-        </div>
+        <button
+          onClick={onOpenWardenLogin}
+          className="px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-cyan-950/60 hover:bg-cyan-900/80 text-cyan-300 border border-cyan-800/60 transition cursor-pointer"
+        >
+          Warden
+        </button>
       </header>
 
       {/* Main Content Area */}
@@ -164,25 +145,16 @@ export const StudentEntryPortal: React.FC<StudentEntryPortalProps> = ({
                 </span>
               </div>
               <div className="flex justify-between items-center text-slate-300">
-                <span className="text-slate-400">Student ID:</span>
-                <span className="font-mono text-cyan-300 font-semibold">{lastSubmittedEntry.studentId}</span>
-              </div>
-              <div className="flex justify-between items-center text-slate-300">
-                <span className="text-slate-400">Time Recorded:</span>
-                <span className="font-semibold text-white">{lastSubmittedEntry.entryTimeFormatted}</span>
+                <span className="text-slate-400">Entry Time:</span>
+                <span className="font-semibold text-emerald-400 text-sm flex items-center gap-1">
+                  <Clock className="w-3.5 h-3.5" />
+                  {lastSubmittedEntry.entryTimeFormatted}
+                </span>
               </div>
               <div className="flex justify-between items-center text-slate-300 pt-1 border-t border-slate-700/60">
-                <span className="text-slate-400">Pool Hours Today:</span>
+                <span className="text-slate-400">Pool Hours:</span>
                 <span className="text-cyan-400 font-medium">Until {poolStatus.closeTime12h}</span>
               </div>
-            </div>
-
-            <div className="bg-cyan-950/30 border border-cyan-800/40 rounded-xl p-3 mb-6 text-xs text-cyan-200 text-left flex items-start gap-2">
-              <ShieldCheck className="w-4 h-4 text-cyan-400 flex-shrink-0 mt-0.5" />
-              <span>
-                Your entry record has been saved. Please follow pool safety guidelines and exit the pool area before{' '}
-                <strong className="text-white">{poolStatus.closeTime12h}</strong>.
-              </span>
             </div>
 
             <button
@@ -194,7 +166,7 @@ export const StudentEntryPortal: React.FC<StudentEntryPortalProps> = ({
             </button>
           </div>
         ) : (
-          /* Normal Student Entry Form */
+          /* Simplified Student Entry Form: Name & Room No only */
           <div className="w-full bg-slate-900/90 border border-cyan-900/40 rounded-3xl p-6 sm:p-7 shadow-2xl backdrop-blur-md">
             {/* Operating Hours Banner */}
             <div
@@ -220,12 +192,13 @@ export const StudentEntryPortal: React.FC<StudentEntryPortalProps> = ({
                   </span>
                 </div>
 
-                <span className="text-[11px] font-mono text-slate-400">
-                  {poolStatus.currentTimeFormatted}
+                <span className="text-[11px] font-mono text-cyan-400 font-medium flex items-center gap-1">
+                  <Clock className="w-3 h-3" />
+                  {currentTime}
                 </span>
               </div>
 
-              {/* Operating Hours Display (Morning 6:00 AM to Evening 5:30 PM) */}
+              {/* Operating Hours Display */}
               <div className="flex items-baseline justify-between mt-2 pt-2 border-t border-slate-800/80">
                 <div className="text-xs text-slate-300">
                   <span className="text-slate-400">Daily Hours: </span>
@@ -253,7 +226,7 @@ export const StudentEntryPortal: React.FC<StudentEntryPortalProps> = ({
                 Swimming Pool Student Entry
               </h2>
               <p className="text-xs text-slate-400 mt-1">
-                Enter your hostel details below to record your pool entry.
+                Enter your name and room number to record your pool entry. Time is captured automatically.
               </p>
             </div>
 
@@ -265,7 +238,7 @@ export const StudentEntryPortal: React.FC<StudentEntryPortalProps> = ({
               </div>
             )}
 
-            {/* Form */}
+            {/* Form: Student Full Name & Hostel Room No ONLY */}
             <form onSubmit={handleSubmitEntry} className="space-y-4 text-left">
               <div>
                 <label className="block text-xs font-semibold text-slate-300 mb-1 flex items-center gap-1.5">
@@ -283,70 +256,29 @@ export const StudentEntryPortal: React.FC<StudentEntryPortalProps> = ({
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1 flex items-center gap-1.5">
-                    <Building className="w-3.5 h-3.5 text-cyan-400" />
-                    Hostel Room No <span className="text-rose-400">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={roomNumber}
-                    onChange={(e) => setRoomNumber(e.target.value)}
-                    placeholder="e.g. Room 204"
-                    className="w-full bg-slate-800/80 border border-slate-700/80 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 uppercase transition"
-                    disabled={!poolStatus.isOpen}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1 flex items-center gap-1.5">
-                    <IdCard className="w-3.5 h-3.5 text-cyan-400" />
-                    Student / Roll ID <span className="text-rose-400">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={studentId}
-                    onChange={(e) => setStudentId(e.target.value)}
-                    placeholder="e.g. Roll / ID"
-                    className="w-full bg-slate-800/80 border border-slate-700/80 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 uppercase transition"
-                    disabled={!poolStatus.isOpen}
-                  />
-                </div>
-              </div>
-
               <div>
                 <label className="block text-xs font-semibold text-slate-300 mb-1 flex items-center gap-1.5">
-                  <Phone className="w-3.5 h-3.5 text-cyan-400" />
-                  Phone Number (Optional)
+                  <Building className="w-3.5 h-3.5 text-cyan-400" />
+                  Hostel Room No <span className="text-rose-400">*</span>
                 </label>
                 <input
-                  type="tel"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  placeholder="Phone number"
-                  className="w-full bg-slate-800/80 border border-slate-700/80 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 transition"
+                  type="text"
+                  required
+                  value={roomNumber}
+                  onChange={(e) => setRoomNumber(e.target.value)}
+                  placeholder="e.g. Room 204"
+                  className="w-full bg-slate-800/80 border border-slate-700/80 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 uppercase transition"
                   disabled={!poolStatus.isOpen}
                 />
               </div>
 
-              {/* Safety Rules Acknowledgment */}
-              <div className="pt-1">
-                <label className="flex items-start gap-2 text-xs text-slate-400 cursor-pointer select-none">
-                  <input
-                    type="checkbox"
-                    checked={agreedToRules}
-                    onChange={(e) => setAgreedToRules(e.target.checked)}
-                    className="mt-0.5 rounded text-cyan-500 focus:ring-cyan-400 focus:ring-offset-slate-900 border-slate-700 bg-slate-800"
-                    disabled={!poolStatus.isOpen}
-                  />
-                  <span>
-                    I confirm I will follow hostel pool rules and understand the pool closes at{' '}
-                    <strong className="text-cyan-300">{poolStatus.closeTime12h}</strong>.
-                  </span>
-                </label>
+              {/* Automatic Time Indication Banner */}
+              <div className="flex items-center justify-between px-3 py-2 bg-slate-800/40 border border-slate-700/50 rounded-xl text-xs text-slate-400">
+                <span className="flex items-center gap-1.5 text-slate-300">
+                  <Clock className="w-3.5 h-3.5 text-emerald-400" />
+                  Entry Time (Automatic):
+                </span>
+                <span className="font-mono text-emerald-400 font-semibold">{currentTime}</span>
               </div>
 
               {/* Submit Button */}
@@ -379,7 +311,7 @@ export const StudentEntryPortal: React.FC<StudentEntryPortalProps> = ({
       </main>
 
       {/* Footer */}
-      <footer className="w-full max-w-xl text-center py-4 text-slate-500 text-xs mt-4">
+      <footer className="w-full max-w-md text-center py-4 text-slate-500 text-xs mt-4">
         <span>Hostel Swimming Pool Entry Record System</span>
         <span className="mx-2">•</span>
         <span>Daily Hours: {poolStatus.openTime12h} to {poolStatus.closeTime12h}</span>

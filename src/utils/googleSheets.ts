@@ -25,12 +25,10 @@ function doPost(e) {
         "Date",
         "Student Name",
         "Room No",
-        "Student ID",
-        "Phone",
         "Entry Time",
         "Timestamp Recorded"
       ]);
-      sheet.getRange(1, 1, 1, 8).setFontWeight("bold").setBackground("#0284c7").setFontColor("#ffffff");
+      sheet.getRange(1, 1, 1, 6).setFontWeight("bold").setBackground("#0284c7").setFontColor("#ffffff");
     }
     
     var data = JSON.parse(e.postData.contents);
@@ -40,13 +38,44 @@ function doPost(e) {
       data.date || new Date().toISOString().split('T')[0],
       data.name || "",
       data.roomNumber || "",
-      data.studentId || "",
-      data.phone || "",
       data.entryTime || "",
       new Date().toLocaleString()
     ]);
     
     return ContentService.createTextOutput(JSON.stringify({ status: "success" }))
+      .setMimeType(ContentService.MimeType.JSON);
+  } catch (err) {
+    return ContentService.createTextOutput(JSON.stringify({ status: "error", message: err.toString() }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+function doGet(e) {
+  try {
+    var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+    var rows = sheet.getDataRange().getValues();
+    if (rows.length <= 1) {
+      return ContentService.createTextOutput(JSON.stringify({ status: "success", entries: [] }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+    
+    var entries = [];
+    // Skip header row
+    for (var i = 1; i < rows.length; i++) {
+      var r = rows[i];
+      if (r[0] || r[2]) {
+        entries.push({
+          id: String(r[0] || ('row-' + i)),
+          dateStr: String(r[1] || ''),
+          name: String(r[2] || ''),
+          roomNumber: String(r[3] || ''),
+          entryTimeFormatted: String(r[4] || ''),
+          entryTimestamp: new Date(r[5] || r[1] || Date.now()).getTime()
+        });
+      }
+    }
+    
+    return ContentService.createTextOutput(JSON.stringify({ status: "success", entries: entries.reverse() }))
       .setMimeType(ContentService.MimeType.JSON);
   } catch (err) {
     return ContentService.createTextOutput(JSON.stringify({ status: "error", message: err.toString() }))
@@ -71,8 +100,6 @@ export async function syncEntryWithGoogleSheets(
     date: entry.dateStr || new Date().toISOString().split('T')[0],
     name: entry.name,
     roomNumber: entry.roomNumber,
-    studentId: entry.studentId,
-    phone: entry.phone,
     entryTime: entry.entryTimeFormatted,
   };
 
@@ -90,5 +117,29 @@ export async function syncEntryWithGoogleSheets(
   } catch (err) {
     console.warn('Google Sheets sync failed:', err);
     return { success: false, message: 'Failed to communicate with Google Sheets.' };
+  }
+}
+
+/**
+ * Fetches entries from Google Sheets Webhook
+ */
+export async function fetchEntriesFromGoogleSheets(webhookUrl: string): Promise<PoolEntry[] | null> {
+  if (!webhookUrl || !webhookUrl.trim().startsWith('https://script.google.com/')) {
+    return null;
+  }
+
+  try {
+    const res = await fetch(webhookUrl.trim(), {
+      method: 'GET',
+    });
+    if (!res.ok) return null;
+    const json = await res.json();
+    if (json && Array.isArray(json.entries)) {
+      return json.entries;
+    }
+    return null;
+  } catch (err) {
+    console.warn('Failed to fetch from Google Sheets:', err);
+    return null;
   }
 }

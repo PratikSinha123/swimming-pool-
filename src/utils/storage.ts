@@ -1,7 +1,7 @@
 import type { PoolEntry, PoolSettings } from '../types';
 
-const SETTINGS_KEY = 'hostel_pool_settings_v4';
-const ENTRIES_KEY = 'hostel_pool_entries_v4';
+export const SETTINGS_KEY = 'hostel_pool_settings_v5';
+export const ENTRIES_KEY = 'hostel_pool_entries_v5';
 
 export const DEFAULT_SETTINGS: PoolSettings = {
   poolName: 'Hostel Swimming Pool',
@@ -20,9 +20,6 @@ export function getStoredSettings(): PoolSettings {
     const raw = localStorage.getItem(SETTINGS_KEY);
     if (!raw) return DEFAULT_SETTINGS;
     const parsed = JSON.parse(raw);
-    if (parsed.wardenPin === '1234') {
-      parsed.wardenPin = 'Ramesh1234';
-    }
     return { ...DEFAULT_SETTINGS, ...parsed };
   } catch (err) {
     console.error('Failed to parse settings:', err);
@@ -33,6 +30,9 @@ export function getStoredSettings(): PoolSettings {
 export function saveStoredSettings(settings: PoolSettings): void {
   try {
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('pool_settings_updated'));
+    }
   } catch (err) {
     console.error('Failed to save settings:', err);
   }
@@ -53,6 +53,9 @@ export function getStoredEntries(): PoolEntry[] {
 export function saveStoredEntries(entries: PoolEntry[]): void {
   try {
     localStorage.setItem(ENTRIES_KEY, JSON.stringify(entries));
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('pool_entries_updated'));
+    }
   } catch (err) {
     console.error('Failed to save entries:', err);
   }

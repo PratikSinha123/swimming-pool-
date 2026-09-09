@@ -1,13 +1,14 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import type { PoolEntry, PoolSettings } from './types';
 import {
   getStoredSettings,
   saveStoredSettings,
   getStoredEntries,
   saveStoredEntries,
+  ENTRIES_KEY,
 } from './utils/storage';
 import { formatTimestampTime } from './utils/timeUtils';
-import { syncEntryWithGoogleSheets } from './utils/googleSheets';
+import { syncEntryWithGoogleSheets, fetchEntriesFromGoogleSheets } from './utils/googleSheets';
 import { StudentEntryPortal } from './components/StudentEntryPortal';
 import { WardenPanel } from './components/WardenPanel';
 import { WardenAuthModal } from './components/WardenAuthModal';
@@ -22,27 +23,74 @@ export default function App() {
   const [showWardenAuth, setShowWardenAuth] = useState(false);
   const [showQRPoster, setShowQRPoster] = useState(false);
 
-  // Handle Student Check-In
-  const handleCheckIn = async (
-    data: Omit<PoolEntry, 'id' | 'entryTimestamp' | 'entryTimeFormatted' | 'dateStr'>
-  ): Promise<PoolEntry | null> => {
+  // Refresh records from local storage and optionally Google Sheets
+  const refreshRecords = useCallback(async () => {
+    const local = getStoredEntries();
+    setEntries(local);
+
+    // If Google Sheets webhook is configured, also pull latest rows
+    if (settings.googleSheetsWebhookUrl) {
+      const remote = await fetchEntriesFromGoogleSheets(settings.googleSheetsWebhookUrl);
+      if (remote && remote.length > 0) {
+        // Merge remote and local (avoiding duplicates by id or name+timestamp)
+        const combined = [...remote];
+        for (const loc of local) {
+          if (!combined.some((c) => c.id === loc.id || (c.name === loc.name && c.entryTimeFormatted === loc.entryTimeFormatted))) {
+            combined.push(loc);
+          }
+        }
+        setEntries(combined);
+        saveStoredEntries(combined);
+      }
+    }
+  }, [settings.googleSheetsWebhookUrl]);
+
+  // Sync across tabs and windows
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === ENTRIES_KEY) {
+        setEntries(getStoredEntries());
+      }
+    };
+    const handleLocalUpdate = () => {
+      setEntries(getStoredEntries());
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('pool_entries_updated', handleLocalUpdate);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('pool_entries_updated', handleLocalUpdate);
+    };
+  }, []);
+
+  // When warden unlocks panel, refresh immediately
+  useEffect(() => {
+    if (isWardenUnlocked) {
+      refreshRecords();
+    }
+  }, [isWardenUnlocked, refreshRecords]);
+
+  // Handle Student Check-In (ONLY Name & Room No)
+  const handleCheckIn = async (data: { name: string; roomNumber: string }): Promise<PoolEntry | null> => {
     const now = Date.now();
     const newEntry: PoolEntry = {
       id: `entry-${now}-${Math.random().toString(36).substr(2, 4)}`,
-      name: data.name,
-      roomNumber: data.roomNumber,
-      studentId: data.studentId,
-      phone: data.phone,
+      name: data.name.trim(),
+      roomNumber: data.roomNumber.trim().toUpperCase(),
       entryTimestamp: now,
       entryTimeFormatted: formatTimestampTime(now),
       dateStr: new Date(now).toISOString().split('T')[0],
     };
 
-    const updated = [newEntry, ...entries];
+    // Read directly from storage to avoid stale closure
+    const current = getStoredEntries();
+    const updated = [newEntry, ...current];
     setEntries(updated);
     saveStoredEntries(updated);
 
-    // Sync to Google Sheets in background
+    // Sync to Google Sheets in background if configured
     if (settings.googleSheetsWebhookUrl) {
       syncEntryWithGoogleSheets(settings.googleSheetsWebhookUrl, newEntry);
     }
@@ -95,6 +143,7 @@ export default function App() {
           onUpdateSettings={handleUpdateSettings}
           onClosePanel={() => setIsWardenUnlocked(false)}
           onOpenQRPoster={() => setShowQRPoster(true)}
+          onRefreshRecords={refreshRecords}
         />
       )}
 
