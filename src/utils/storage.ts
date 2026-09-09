@@ -120,16 +120,47 @@ export function saveStoredSettings(settings: PoolSettings): void {
   }
 }
 
+export const ARCHIVE_KEY = 'hostel_pool_entries_permanent_archive_v7';
+
 export function getStoredEntries(): PoolEntry[] {
   if (typeof window === 'undefined') return [];
   try {
-    // Purge legacy storage keys so old test data is never revived
-    const legacyKeys = ['hostel_pool_entries_v6', 'hostel_pool_entries_v5', 'hostel_pool_entries_v4', 'hostel_pool_entries'];
-    legacyKeys.forEach((k) => localStorage.removeItem(k));
-
     const raw = localStorage.getItem(ENTRIES_KEY);
-    if (!raw) return [];
-    return JSON.parse(raw);
+    let entries: PoolEntry[] = raw ? JSON.parse(raw) : [];
+
+    // If current entries is empty, check legacy keys to recover any historical student data!
+    if (!Array.isArray(entries) || entries.length === 0) {
+      const legacyKeys = ['hostel_pool_entries_v6', 'hostel_pool_entries_v5', 'hostel_pool_entries_v4', 'hostel_pool_entries'];
+      for (const k of legacyKeys) {
+        try {
+          const legRaw = localStorage.getItem(k);
+          if (legRaw) {
+            const parsed = JSON.parse(legRaw);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              entries = parsed;
+              localStorage.setItem(ENTRIES_KEY, JSON.stringify(entries));
+              break;
+            }
+          }
+        } catch {}
+      }
+    }
+
+    // Also fallback to permanent archive if still empty
+    if (!Array.isArray(entries) || entries.length === 0) {
+      try {
+        const archRaw = localStorage.getItem(ARCHIVE_KEY);
+        if (archRaw) {
+          const archParsed = JSON.parse(archRaw);
+          if (Array.isArray(archParsed) && archParsed.length > 0) {
+            entries = archParsed;
+            localStorage.setItem(ENTRIES_KEY, JSON.stringify(entries));
+          }
+        }
+      } catch {}
+    }
+
+    return Array.isArray(entries) ? entries : [];
   } catch (err) {
     console.error('Failed to load entries:', err);
     return [];
@@ -139,6 +170,28 @@ export function getStoredEntries(): PoolEntry[] {
 export function saveStoredEntries(entries: PoolEntry[]): void {
   try {
     localStorage.setItem(ENTRIES_KEY, JSON.stringify(entries));
+
+    // Save to permanent archive so student data is NEVER lost
+    if (Array.isArray(entries) && entries.length > 0) {
+      try {
+        const archRaw = localStorage.getItem(ARCHIVE_KEY);
+        const existingArchive: PoolEntry[] = archRaw ? JSON.parse(archRaw) : [];
+        const map = new Map<string, PoolEntry>();
+        for (const e of entries) {
+          if (e && e.id) map.set(e.id, e);
+        }
+        for (const e of existingArchive) {
+          if (e && e.id && !map.has(e.id)) map.set(e.id, e);
+        }
+        const combinedArchive = Array.from(map.values()).sort(
+          (a, b) => (b.entryTimestamp || 0) - (a.entryTimestamp || 0)
+        );
+        localStorage.setItem(ARCHIVE_KEY, JSON.stringify(combinedArchive));
+      } catch (archErr) {
+        console.warn('Archive save warning:', archErr);
+      }
+    }
+
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new Event('pool_entries_updated'));
     }
