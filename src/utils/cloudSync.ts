@@ -12,23 +12,28 @@ function getCacheBustUrl(baseUrl: string): string {
 /**
  * Push settings to central cloud storage so ALL devices update their hours and statuses immediately
  */
-export async function pushSettingsToCloud(settings: PoolSettings): Promise<boolean> {
+export async function pushSettingsToCloud(settings: PoolSettings, retries = 3): Promise<boolean> {
   const payload: PoolSettings = {
     ...settings,
     updatedAt: Date.now(),
   };
 
-  try {
-    const res = await fetch(KVDB_SETTINGS_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    });
-    return res.ok;
-  } catch (err) {
-    console.warn('Settings cloud push error:', err);
-    return false;
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      const res = await fetch(KVDB_SETTINGS_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (res.ok) return true;
+    } catch (err) {
+      console.warn(`Settings cloud push attempt ${attempt} failed:`, err);
+    }
+    if (attempt < retries) {
+      await new Promise((r) => setTimeout(r, 200 * attempt));
+    }
   }
+  return false;
 }
 
 /**

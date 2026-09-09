@@ -10,6 +10,7 @@ import {
   getActiveView,
   saveActiveView,
   ENTRIES_KEY,
+  SETTINGS_KEY,
 } from './utils/storage';
 import { formatTimestampTime } from './utils/timeUtils';
 import {
@@ -45,26 +46,11 @@ export default function App() {
     try {
       const cloudSettings = await fetchSettingsFromCloud();
       if (cloudSettings && cloudSettings.openTime && cloudSettings.closeTime) {
-        setSettings((prev) => {
-          const hasChanged =
-            prev.openTime !== cloudSettings.openTime ||
-            prev.closeTime !== cloudSettings.closeTime ||
-            prev.isOpenManually !== cloudSettings.isOpenManually ||
-            prev.poolName !== cloudSettings.poolName ||
-            prev.hostelName !== cloudSettings.hostelName ||
-            prev.wardenPin !== cloudSettings.wardenPin ||
-            JSON.stringify(prev.mealBreaks) !== JSON.stringify(cloudSettings.mealBreaks);
-
-          if (hasChanged || (cloudSettings.updatedAt && cloudSettings.updatedAt !== prev.updatedAt)) {
-            const merged = {
-              ...prev,
-              ...cloudSettings,
-            };
-            saveStoredSettings(merged);
-            return merged;
-          }
-          return prev;
-        });
+        saveStoredSettings(cloudSettings);
+        setSettings((prev) => ({
+          ...prev,
+          ...cloudSettings,
+        }));
       }
     } catch (err) {
       console.warn('Settings cloud sync warning:', err);
@@ -135,14 +121,14 @@ export default function App() {
     window.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('focus', handleVisibilityChange);
 
-    // Poll every 5 seconds when visible — both student and warden views
-    // This ensures student entries are always pushed to cloud even if initial push failed
+    // Poll every 3 seconds when visible — both student and warden views
+    // This ensures time changes made on one phone propagate to other phones in 3 seconds!
     const timer = setInterval(() => {
       if (document.visibilityState === 'visible') {
         refreshRecords();
         refreshSettings();
       }
-    }, 5000);
+    }, 3000);
 
     return () => {
       window.removeEventListener('visibilitychange', handleVisibilityChange);
@@ -157,17 +143,25 @@ export default function App() {
       if (e.key === ENTRIES_KEY) {
         setEntries(getStoredEntries());
       }
+      if (e.key === SETTINGS_KEY) {
+        setSettings(getStoredSettings());
+      }
     };
-    const handleLocalUpdate = () => {
+    const handleEntriesUpdate = () => {
       setEntries(getStoredEntries());
+    };
+    const handleSettingsUpdate = () => {
+      setSettings(getStoredSettings());
     };
 
     window.addEventListener('storage', handleStorageChange);
-    window.addEventListener('pool_entries_updated', handleLocalUpdate);
+    window.addEventListener('pool_entries_updated', handleEntriesUpdate);
+    window.addEventListener('pool_settings_updated', handleSettingsUpdate);
 
     return () => {
       window.removeEventListener('storage', handleStorageChange);
-      window.removeEventListener('pool_entries_updated', handleLocalUpdate);
+      window.removeEventListener('pool_entries_updated', handleEntriesUpdate);
+      window.removeEventListener('pool_settings_updated', handleSettingsUpdate);
     };
   }, []);
 

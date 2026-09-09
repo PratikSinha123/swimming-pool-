@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import confetti from 'canvas-confetti';
-import type { PoolEntry, PoolSettings, PoolOperatingStatus } from '../types';
+import type { PoolEntry, PoolSettings } from '../types';
 import { checkPoolStatus, formatTimestampTime } from '../utils/timeUtils';
 import {
   Waves,
@@ -34,11 +34,8 @@ export const StudentEntryPortal: React.FC<StudentEntryPortalProps> = ({
   onOpenWardenLogin,
   isWardenLoggedIn = false,
 }) => {
-  // Live status & current time update every second
+  // Live current time update every second
   const [currentTime, setCurrentTime] = useState<string>(() => formatTimestampTime(Date.now()));
-  const [poolStatus, setPoolStatus] = useState<PoolOperatingStatus>(() =>
-    checkPoolStatus(settings.openTime, settings.closeTime, settings.isOpenManually, settings.mealBreaks)
-  );
 
   // Form states - ONLY Student Name & Room No as requested
   const [name, setName] = useState('');
@@ -49,22 +46,21 @@ export const StudentEntryPortal: React.FC<StudentEntryPortalProps> = ({
   // Last submitted record (confirmation banner)
   const [lastSubmittedEntry, setLastSubmittedEntry] = useState<PoolEntry | null>(null);
 
-  // Live timer tick and status check
   useEffect(() => {
-    // Immediately calculate when settings change
-    setPoolStatus(
-      checkPoolStatus(settings.openTime, settings.closeTime, settings.isOpenManually, settings.mealBreaks)
-    );
-
     const timer = setInterval(() => {
-      const now = Date.now();
-      setCurrentTime(formatTimestampTime(now));
-      setPoolStatus(
-        checkPoolStatus(settings.openTime, settings.closeTime, settings.isOpenManually, settings.mealBreaks)
-      );
+      setCurrentTime(formatTimestampTime(Date.now()));
     }, 1000);
     return () => clearInterval(timer);
-  }, [settings]);
+  }, []);
+
+  // Compute live pool status directly from props on EVERY RENDER
+  // This guarantees 0ms lag and zero out-of-sync state when settings update!
+  const poolStatus = checkPoolStatus(
+    settings.openTime,
+    settings.closeTime,
+    settings.isOpenManually,
+    settings.mealBreaks
+  );
 
   const handleSubmitEntry = async (e: React.FormEvent) => {
     e.preventDefault();
