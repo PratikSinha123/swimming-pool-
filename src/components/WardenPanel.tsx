@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import type { PoolEntry, PoolSettings } from '../types';
-import { format24To12 } from '../utils/timeUtils';
+import { format24To12, checkPoolStatus } from '../utils/timeUtils';
 import {
   Shield,
   Clock,
@@ -62,6 +62,13 @@ export const WardenPanel: React.FC<WardenPanelProps> = ({
 
   const todayStr = new Date().toLocaleDateString('en-CA');
   const todayEntries = entries.filter((e) => e.dateStr === todayStr);
+
+  const livePoolStatus = checkPoolStatus(
+    settings.openTime,
+    settings.closeTime,
+    settings.isOpenManually,
+    settings.mealBreaks
+  );
 
   const handleManualRefresh = async () => {
     setIsRefreshing(true);
@@ -262,15 +269,25 @@ export const WardenPanel: React.FC<WardenPanelProps> = ({
                   <span>Pool Status</span>
                   <span
                     className={`px-1.5 sm:px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-bold uppercase ${
-                      draftSettings.isOpenManually ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'
+                      livePoolStatus.isOpen ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'
                     }`}
                   >
-                    {draftSettings.isOpenManually ? 'Open' : 'Closed'}
+                    {livePoolStatus.isOpen ? 'Open' : 'Closed'}
                   </span>
                 </div>
                 <div className="text-sm sm:text-xl font-bold text-white tracking-tight truncate mt-1">
                   {format24To12(settings.openTime)} – {format24To12(settings.closeTime)}
                 </div>
+                {!livePoolStatus.isOpen && (
+                  <span className="text-[10px] text-rose-400 block mt-1 truncate">
+                    {livePoolStatus.reason || 'Closed for current interval'}
+                  </span>
+                )}
+                {livePoolStatus.isOpen && livePoolStatus.nextEventText && (
+                  <span className="text-[10px] text-cyan-400 block mt-1 truncate">
+                    {livePoolStatus.nextEventText}
+                  </span>
+                )}
                 <button
                   onClick={() => setActiveTab('settings')}
                   className="mt-1 sm:mt-2 text-[11px] sm:text-xs text-cyan-400 hover:underline flex items-center gap-1 font-medium cursor-pointer"
@@ -521,6 +538,20 @@ export const WardenPanel: React.FC<WardenPanelProps> = ({
                   <span className="text-[11px] text-slate-400 mr-1">Quick Presets:</span>
                   <button
                     type="button"
+                    onClick={() => setDraftSettings({ ...draftSettings, openTime: '00:00', closeTime: '23:59' })}
+                    className="px-2.5 py-1 text-[11px] rounded-lg bg-emerald-950 hover:bg-emerald-900 text-emerald-300 border border-emerald-700 transition cursor-pointer font-semibold"
+                  >
+                    ⚡ 24/7 Always Open
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDraftSettings({ ...draftSettings, openTime: '06:00', closeTime: '02:00' })}
+                    className="px-2.5 py-1 text-[11px] rounded-lg bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-slate-700 transition cursor-pointer"
+                  >
+                    Open till 2:00 AM (Late Night)
+                  </button>
+                  <button
+                    type="button"
                     onClick={() => setDraftSettings({ ...draftSettings, openTime: '06:00', closeTime: '23:59' })}
                     className="px-2.5 py-1 text-[11px] rounded-lg bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-slate-700 transition cursor-pointer"
                   >
@@ -531,14 +562,7 @@ export const WardenPanel: React.FC<WardenPanelProps> = ({
                     onClick={() => setDraftSettings({ ...draftSettings, openTime: '06:00', closeTime: '22:30' })}
                     className="px-2.5 py-1 text-[11px] rounded-lg bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-slate-700 transition cursor-pointer"
                   >
-                    Open till 10:30 PM
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setDraftSettings({ ...draftSettings, openTime: '06:00', closeTime: '18:00' })}
-                    className="px-2.5 py-1 text-[11px] rounded-lg bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-slate-700 transition cursor-pointer"
-                  >
-                    Open till 6:00 PM
+                    Standard (till 10:30 PM)
                   </button>
                 </div>
 

@@ -81,14 +81,16 @@ export const DEFAULT_MEAL_BREAKS: MealBreak[] = [
   { id: 'dinner', name: 'Night Meal / Dinner', startTime: '20:00', endTime: '21:15', enabled: true },
 ];
 
+export const PRODUCTION_URL = 'https://swimming-pool-seven.vercel.app';
+
 export const DEFAULT_SETTINGS: PoolSettings = {
   poolName: 'Hostel Swimming Pool',
   hostelName: 'Hostel Campus',
   openTime: '06:00', // 6:00 AM
-  closeTime: '22:30', // 10:30 PM
+  closeTime: '02:00', // 2:00 AM late night
   isOpenManually: true,
   wardenPin: 'Ramesh1234',
-  appUrl: typeof window !== 'undefined' ? window.location.origin : '',
+  appUrl: PRODUCTION_URL,
   mealBreaks: DEFAULT_MEAL_BREAKS,
 };
 

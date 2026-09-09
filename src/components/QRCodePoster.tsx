@@ -11,10 +11,19 @@ interface QRCodePosterProps {
 
 export const QRCodePoster: React.FC<QRCodePosterProps> = ({ settings, onClose }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const [targetUrl, setTargetUrl] = useState(
-    settings.appUrl || (typeof window !== 'undefined' ? window.location.origin : '')
-  );
+  const [targetUrl, setTargetUrl] = useState(() => {
+    if (settings.appUrl && !settings.appUrl.includes('localhost')) {
+      return settings.appUrl;
+    }
+    return 'https://swimming-pool-seven.vercel.app';
+  });
   const [qrGenerated, setQrGenerated] = useState(false);
+
+  useEffect(() => {
+    if (settings.appUrl && !settings.appUrl.includes('localhost')) {
+      setTargetUrl(settings.appUrl);
+    }
+  }, [settings.appUrl]);
 
   const openTime12 = format24To12(settings.openTime);
   const closeTime12 = format24To12(settings.closeTime);
