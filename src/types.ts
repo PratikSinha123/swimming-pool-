@@ -5,6 +5,8 @@ export interface PoolEntry {
   entryTimestamp: number;
   entryTimeFormatted: string;
   dateStr: string; // e.g. '2026-09-09'
+  isMealBreakEntry?: boolean;
+  entryNotice?: string;
 }
 
 export interface MealBreak {
@@ -21,6 +23,7 @@ export interface PoolSettings {
   openTime: string;       // default "06:00" (6:00 AM)
   closeTime: string;      // default "22:30" (10:30 PM)
   isOpenManually: boolean; // Manual override: false if warden forcefully closes pool
+  strictBlockDuringClosures?: boolean; // false by default: allows entries with notice
   wardenPin: string;      // default "Ramesh1234"
   googleSheetsWebhookUrl: string;
   appUrl: string;

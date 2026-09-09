@@ -13,6 +13,7 @@ import {
 } from './utils/storage';
 import { formatTimestampTime } from './utils/timeUtils';
 import { syncEntryWithGoogleSheets, fetchEntriesFromGoogleSheets } from './utils/googleSheets';
+import { pushEntriesToCloud, fetchEntriesFromCloud, mergeEntries } from './utils/cloudSync';
 import { StudentEntryPortal } from './components/StudentEntryPortal';
 import { WardenPanel } from './components/WardenPanel';
 import { WardenAuthModal } from './components/WardenAuthModal';
@@ -30,27 +31,46 @@ export default function App() {
   const [showWardenAuth, setShowWardenAuth] = useState(false);
   const [showQRPoster, setShowQRPoster] = useState(false);
 
-  // Refresh records from local storage and optionally Google Sheets
+  // Refresh records from local storage, Central Cloud Sync, and Google Sheets
   const refreshRecords = useCallback(async () => {
     const local = getStoredEntries();
-    setEntries(local);
+    let combined = [...local];
 
-    // If Google Sheets webhook is configured, also pull latest rows
+    // 1. Fetch from Central Cloud Storage (works across all devices automatically)
+    try {
+      const cloudEntries = await fetchEntriesFromCloud();
+      if (cloudEntries && cloudEntries.length > 0) {
+        combined = mergeEntries(combined, cloudEntries);
+      }
+    } catch (err) {
+      console.warn('Cloud sync error:', err);
+    }
+
+    // 2. If Google Sheets webhook is configured, also pull latest rows
     if (settings.googleSheetsWebhookUrl) {
-      const remote = await fetchEntriesFromGoogleSheets(settings.googleSheetsWebhookUrl);
-      if (remote && remote.length > 0) {
-        // Merge remote and local (avoiding duplicates by id or name+timestamp)
-        const combined = [...remote];
-        for (const loc of local) {
-          if (!combined.some((c) => c.id === loc.id || (c.name === loc.name && c.entryTimeFormatted === loc.entryTimeFormatted))) {
-            combined.push(loc);
-          }
+      try {
+        const remote = await fetchEntriesFromGoogleSheets(settings.googleSheetsWebhookUrl);
+        if (remote && remote.length > 0) {
+          combined = mergeEntries(combined, remote);
         }
-        setEntries(combined);
-        saveStoredEntries(combined);
+      } catch (err) {
+        console.warn('Google Sheets sync error:', err);
       }
     }
+
+    setEntries(combined);
+    saveStoredEntries(combined);
+    return combined;
   }, [settings.googleSheetsWebhookUrl]);
+
+  // Initial mount sync & real-time periodic polling (every 5 seconds) across devices
+  useEffect(() => {
+    refreshRecords();
+    const timer = setInterval(() => {
+      refreshRecords();
+    }, 5000);
+    return () => clearInterval(timer);
+  }, [refreshRecords]);
 
   // Sync across tabs and windows
   useEffect(() => {
@@ -95,26 +115,39 @@ export default function App() {
   }, [activeView, isWardenAuth, refreshRecords]);
 
   // Handle Student Check-In (ONLY Name & Room No)
-  const handleCheckIn = async (data: { name: string; roomNumber: string }): Promise<PoolEntry | null> => {
+  const handleCheckIn = async (data: {
+    name: string;
+    roomNumber: string;
+    isMealBreakEntry?: boolean;
+    entryNotice?: string;
+  }): Promise<PoolEntry | null> => {
     const now = Date.now();
+    const localDate = new Date(now).toLocaleDateString('en-CA'); // Local YYYY-MM-DD
     const newEntry: PoolEntry = {
       id: `entry-${now}-${Math.random().toString(36).substr(2, 4)}`,
       name: data.name.trim(),
       roomNumber: data.roomNumber.trim().toUpperCase(),
       entryTimestamp: now,
       entryTimeFormatted: formatTimestampTime(now),
-      dateStr: new Date(now).toISOString().split('T')[0],
+      dateStr: localDate,
+      isMealBreakEntry: data.isMealBreakEntry,
+      entryNotice: data.entryNotice,
     };
 
-    // Read directly from storage to avoid stale closure
+    // 1. Read directly from storage to avoid stale closure
     const current = getStoredEntries();
-    const updated = [newEntry, ...current];
+    const updated = [newEntry, ...current.filter((e) => e.id !== newEntry.id)];
     setEntries(updated);
     saveStoredEntries(updated);
 
-    // Sync to Google Sheets in background if configured
+    // 2. Push immediately to Central Cloud Storage (so Warden screen updates instantly)
+    pushEntriesToCloud(updated).catch((e) => console.warn('Cloud push error:', e));
+
+    // 3. Sync to Google Sheets in background if configured
     if (settings.googleSheetsWebhookUrl) {
-      syncEntryWithGoogleSheets(settings.googleSheetsWebhookUrl, newEntry);
+      syncEntryWithGoogleSheets(settings.googleSheetsWebhookUrl, newEntry).catch((e) =>
+        console.warn('Google Sheets error:', e)
+      );
     }
 
     return newEntry;
@@ -126,7 +159,7 @@ export default function App() {
     saveStoredSettings(newSettings);
   };
 
-  const todayStr = new Date().toISOString().split('T')[0];
+  const todayStr = new Date().toLocaleDateString('en-CA');
   const todayEntriesCount = entries.filter((e) => e.dateStr === todayStr).length;
 
   return (

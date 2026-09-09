@@ -17,7 +17,12 @@ import {
 interface StudentEntryPortalProps {
   settings: PoolSettings;
   todayEntriesCount: number;
-  onCheckIn: (entry: { name: string; roomNumber: string }) => Promise<PoolEntry | null>;
+  onCheckIn: (entry: {
+    name: string;
+    roomNumber: string;
+    isMealBreakEntry?: boolean;
+    entryNotice?: string;
+  }) => Promise<PoolEntry | null>;
   onOpenWardenLogin: () => void;
   isWardenLoggedIn?: boolean;
 }
@@ -67,8 +72,12 @@ export const StudentEntryPortal: React.FC<StudentEntryPortalProps> = ({
       return;
     }
 
-    if (!poolStatus.isOpen) {
-      setFormError(`Pool is currently closed. Operating hours are ${poolStatus.openTime12h} to ${poolStatus.closeTime12h}.`);
+    // If strictly blocked by warden configuration
+    if (!poolStatus.isOpen && settings.strictBlockDuringClosures) {
+      setFormError(
+        poolStatus.reason ||
+          `Pool is currently closed. Operating hours are ${poolStatus.openTime12h} to ${poolStatus.closeTime12h}.`
+      );
       return;
     }
 
@@ -77,6 +86,10 @@ export const StudentEntryPortal: React.FC<StudentEntryPortalProps> = ({
       const created = await onCheckIn({
         name: name.trim(),
         roomNumber: roomNumber.trim().toUpperCase(),
+        isMealBreakEntry: !poolStatus.isOpen,
+        entryNotice: !poolStatus.isOpen
+          ? poolStatus.reason || 'Recorded during closure period'
+          : undefined,
       });
 
       if (created) {
@@ -168,6 +181,13 @@ export const StudentEntryPortal: React.FC<StudentEntryPortalProps> = ({
             <h2 className="text-2xl font-black text-white tracking-tight">
               {lastSubmittedEntry.name}
             </h2>
+
+            {lastSubmittedEntry.entryNotice && (
+              <div className="mt-2.5 px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs flex items-center justify-center gap-1.5 font-medium">
+                <AlertTriangle className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />
+                <span>Note: {lastSubmittedEntry.entryNotice}</span>
+              </div>
+            )}
 
             <div className="bg-slate-800/60 border border-slate-700/70 rounded-2xl p-4 my-5 text-left space-y-2 text-xs">
               <div className="flex justify-between items-center text-slate-300">
@@ -291,7 +311,7 @@ export const StudentEntryPortal: React.FC<StudentEntryPortalProps> = ({
                   onChange={(e) => setName(e.target.value)}
                   placeholder="Enter full name"
                   className="w-full bg-slate-800/80 border border-slate-700/80 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition"
-                  disabled={!poolStatus.isOpen}
+                  disabled={isSubmitting || (!!settings.strictBlockDuringClosures && !poolStatus.isOpen)}
                 />
               </div>
 
@@ -307,7 +327,7 @@ export const StudentEntryPortal: React.FC<StudentEntryPortalProps> = ({
                   onChange={(e) => setRoomNumber(e.target.value)}
                   placeholder="e.g. Room 204"
                   className="w-full bg-slate-800/80 border border-slate-700/80 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 uppercase transition"
-                  disabled={!poolStatus.isOpen}
+                  disabled={isSubmitting || (!!settings.strictBlockDuringClosures && !poolStatus.isOpen)}
                 />
               </div>
 
@@ -323,11 +343,13 @@ export const StudentEntryPortal: React.FC<StudentEntryPortalProps> = ({
               {/* Submit Button */}
               <button
                 type="submit"
-                disabled={!poolStatus.isOpen || isSubmitting}
+                disabled={isSubmitting || (!!settings.strictBlockDuringClosures && !poolStatus.isOpen)}
                 className={`w-full py-3.5 px-5 rounded-2xl font-bold text-sm tracking-wide transition shadow-xl flex items-center justify-center gap-2 ${
-                  poolStatus.isOpen
+                  settings.strictBlockDuringClosures && !poolStatus.isOpen
+                    ? 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700'
+                    : poolStatus.isOpen
                     ? 'bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white shadow-cyan-500/25 active:scale-98 cursor-pointer'
-                    : 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700'
+                    : 'bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white shadow-amber-600/25 active:scale-98 cursor-pointer'
                 }`}
               >
                 {isSubmitting ? (
@@ -335,12 +357,17 @@ export const StudentEntryPortal: React.FC<StudentEntryPortalProps> = ({
                 ) : poolStatus.isOpen ? (
                   <>
                     <CheckCircle2 className="w-4 h-4" />
-                    Record Pool Entry
+                    <span>Record Pool Entry</span>
+                  </>
+                ) : settings.strictBlockDuringClosures ? (
+                  <>
+                    <DoorClosed className="w-4 h-4" />
+                    <span>Pool Closed (Opens {poolStatus.openTime12h})</span>
                   </>
                 ) : (
                   <>
-                    <DoorClosed className="w-4 h-4" />
-                    Pool Closed (Opens {poolStatus.openTime12h})
+                    <AlertTriangle className="w-4 h-4 text-amber-200" />
+                    <span>Record Entry ({poolStatus.currentBreakName || 'Meal Break Entry'})</span>
                   </>
                 )}
               </button>

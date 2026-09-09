@@ -53,7 +53,7 @@ export const WardenPanel: React.FC<WardenPanelProps> = ({
   // Google Sheets copy status
   const [copiedCode, setCopiedCode] = useState(false);
 
-  const todayStr = new Date().toISOString().split('T')[0];
+  const todayStr = new Date().toLocaleDateString('en-CA');
   const todayEntries = entries.filter((e) => e.dateStr === todayStr);
 
   const handleManualRefresh = async () => {
@@ -389,7 +389,20 @@ export const WardenPanel: React.FC<WardenPanelProps> = ({
                         filteredEntries.map((item, index) => (
                           <tr key={item.id} className="hover:bg-slate-800/30 transition">
                             <td className="p-3.5 text-slate-500 font-mono">{index + 1}</td>
-                            <td className="p-3.5 font-bold text-white text-sm">{item.name}</td>
+                            <td className="p-3.5 font-bold text-white text-sm">
+                              <div className="flex items-center gap-2">
+                                <span>{item.name}</span>
+                                {item.isMealBreakEntry && (
+                                  <span
+                                    className="inline-flex items-center gap-1 text-[10px] font-normal px-2 py-0.5 rounded-full bg-amber-950/80 text-amber-300 border border-amber-800/60"
+                                    title={item.entryNotice}
+                                  >
+                                    <AlertTriangle className="w-2.5 h-2.5 text-amber-400" />
+                                    Meal Break Entry
+                                  </span>
+                                )}
+                              </div>
+                            </td>
                             <td className="p-3.5">
                               <span className="font-mono bg-cyan-950/80 text-cyan-300 px-2.5 py-1 rounded-md border border-cyan-800/60 font-bold text-xs">
                                 {item.roomNumber}
@@ -579,6 +592,36 @@ export const WardenPanel: React.FC<WardenPanelProps> = ({
                   <span
                     className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${
                       draftSettings.isOpenManually ? 'translate-x-6' : 'translate-x-1'
+                    }`}
+                  />
+                </button>
+              </div>
+
+              {/* STRICT CLOSURE BLOCKING TOGGLE */}
+              <div className="bg-slate-800/60 border border-slate-700/80 rounded-2xl p-4 flex items-center justify-between">
+                <div>
+                  <span className="text-sm font-semibold text-white block">
+                    Strictly Block Check-Ins During Meal Breaks / Closures
+                  </span>
+                  <span className="text-xs text-slate-400 block mt-0.5">
+                    When OFF (recommended), students can still submit check-ins and they are tagged as meal-break entries. When ON, check-in button is strictly disabled.
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setDraftSettings({
+                      ...draftSettings,
+                      strictBlockDuringClosures: !draftSettings.strictBlockDuringClosures,
+                    })
+                  }
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition cursor-pointer ${
+                    draftSettings.strictBlockDuringClosures ? 'bg-rose-500' : 'bg-slate-700'
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${
+                      draftSettings.strictBlockDuringClosures ? 'translate-x-6' : 'translate-x-1'
                     }`}
                   />
                 </button>
