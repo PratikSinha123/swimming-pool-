@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import type { PoolEntry, PoolSettings } from './types';
 import {
   getStoredSettings,
@@ -36,6 +36,9 @@ export default function App() {
 
   const [showWardenAuth, setShowWardenAuth] = useState(false);
   const [showQRPoster, setShowQRPoster] = useState(false);
+
+  // Flag to distinguish intentional clear from lost-push scenarios
+  const recentlyClearedRef = useRef(false);
 
   // Refresh settings from Central Cloud Storage (so time changes made on one phone propagate to all phones)
   const refreshSettings = useCallback(async () => {
@@ -75,21 +78,45 @@ export default function App() {
     try {
       const cloudEntries = await fetchEntriesFromCloud(2);
       if (Array.isArray(cloudEntries)) {
-        if (cloudEntries.length === 0) {
-          // Cloud was explicitly cleared
+        if (cloudEntries.length === 0 && local.length === 0) {
+          // Both are empty — genuinely no records
           setEntries([]);
           saveStoredEntries([]);
           return [];
         }
+
+        if (cloudEntries.length === 0 && local.length > 0) {
+          if (recentlyClearedRef.current) {
+            // Warden intentionally cleared — respect it, wipe local too
+            recentlyClearedRef.current = false;
+            setEntries([]);
+            saveStoredEntries([]);
+            return [];
+          }
+          // Cloud is empty but we have local entries — likely the student's push was lost
+          // Re-push local entries to cloud so they appear on the warden panel
+          pushEntriesToCloud(local, 3).catch(() => {});
+          setEntries(local);
+          return local;
+        }
+
+        // Normal merge: combine cloud + local, deduplicate by ID
         const merged = mergeEntries(local, cloudEntries);
         setEntries(merged);
         saveStoredEntries(merged);
+
+        // If merged has more entries than cloud (local had extras), push the full set
+        if (merged.length > cloudEntries.length) {
+          pushEntriesToCloud(merged, 2).catch(() => {});
+        }
+
         return merged;
       }
     } catch (err) {
       console.warn('Cloud sync error:', err);
     }
 
+    // Cloud unreachable — use local entries
     setEntries(local);
     return local;
   }, []);
@@ -108,25 +135,21 @@ export default function App() {
     window.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('focus', handleVisibilityChange);
 
-    // Polling interval:
-    // When Warden Panel is open: poll records every 4s to catch live incoming student entries
-    // When on Student view: only poll settings every 20s to conserve bandwidth
-    const intervalMs = activeView === 'warden' ? 4000 : 20000;
+    // Poll every 5 seconds when visible — both student and warden views
+    // This ensures student entries are always pushed to cloud even if initial push failed
     const timer = setInterval(() => {
       if (document.visibilityState === 'visible') {
-        if (activeView === 'warden') {
-          refreshRecords();
-        }
+        refreshRecords();
         refreshSettings();
       }
-    }, intervalMs);
+    }, 5000);
 
     return () => {
       window.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('focus', handleVisibilityChange);
       clearInterval(timer);
     };
-  }, [activeView, refreshRecords, refreshSettings]);
+  }, [refreshRecords, refreshSettings]);
 
   // Sync across tabs and windows
   useEffect(() => {
@@ -223,6 +246,7 @@ export default function App() {
 
   // Clear all entries across local and central cloud storage
   const handleClearAllRecords = async (): Promise<void> => {
+    recentlyClearedRef.current = true;
     setEntries([]);
     saveStoredEntries([]);
     await pushEntriesToCloud([], 3);
