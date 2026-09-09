@@ -11,6 +11,7 @@ import {
   Building,
   RotateCcw,
   Clock,
+  Shield,
 } from 'lucide-react';
 
 interface StudentEntryPortalProps {
@@ -18,6 +19,7 @@ interface StudentEntryPortalProps {
   todayEntriesCount: number;
   onCheckIn: (entry: { name: string; roomNumber: string }) => Promise<PoolEntry | null>;
   onOpenWardenLogin: () => void;
+  isWardenLoggedIn?: boolean;
 }
 
 export const StudentEntryPortal: React.FC<StudentEntryPortalProps> = ({
@@ -25,6 +27,7 @@ export const StudentEntryPortal: React.FC<StudentEntryPortalProps> = ({
   todayEntriesCount,
   onCheckIn,
   onOpenWardenLogin,
+  isWardenLoggedIn = false,
 }) => {
   // Live status & current time update every second
   const [currentTime, setCurrentTime] = useState<string>(() => formatTimestampTime(Date.now()));
@@ -96,6 +99,25 @@ export const StudentEntryPortal: React.FC<StudentEntryPortalProps> = ({
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col items-center justify-between p-4 sm:p-6 selection:bg-cyan-500 selection:text-white">
+      {/* Persistent Warden Device Banner (if logged in on this device) */}
+      {isWardenLoggedIn && (
+        <div className="w-full max-w-md bg-emerald-950/80 border border-emerald-700/60 rounded-2xl px-3.5 py-2 mb-3 flex items-center justify-between shadow-lg shadow-emerald-950/30">
+          <div className="flex items-center gap-2 text-xs text-emerald-300 font-medium">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+            </span>
+            <span>Device Logged In as <strong>Warden</strong></span>
+          </div>
+          <button
+            onClick={onOpenWardenLogin}
+            className="text-[11px] font-bold bg-emerald-600 hover:bg-emerald-500 text-white px-2.5 py-1 rounded-lg transition cursor-pointer shadow-sm"
+          >
+            Dashboard &rarr;
+          </button>
+        </div>
+      )}
+
       {/* Top Navbar */}
       <header className="w-full max-w-md flex items-center justify-between py-2 border-b border-cyan-900/40 mb-6">
         <div className="flex items-center gap-2.5">
@@ -112,12 +134,22 @@ export const StudentEntryPortal: React.FC<StudentEntryPortalProps> = ({
           </div>
         </div>
 
-        <button
-          onClick={onOpenWardenLogin}
-          className="px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-cyan-950/60 hover:bg-cyan-900/80 text-cyan-300 border border-cyan-800/60 transition cursor-pointer"
-        >
-          Warden
-        </button>
+        {isWardenLoggedIn ? (
+          <button
+            onClick={onOpenWardenLogin}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-emerald-950/80 hover:bg-emerald-900 text-emerald-300 border border-emerald-700/70 transition cursor-pointer"
+          >
+            <Shield className="w-3.5 h-3.5 text-emerald-400" />
+            <span>Warden (Logged In)</span>
+          </button>
+        ) : (
+          <button
+            onClick={onOpenWardenLogin}
+            className="px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-cyan-950/60 hover:bg-cyan-900/80 text-cyan-300 border border-cyan-800/60 transition cursor-pointer"
+          >
+            Warden
+          </button>
+        )}
       </header>
 
       {/* Main Content Area */}

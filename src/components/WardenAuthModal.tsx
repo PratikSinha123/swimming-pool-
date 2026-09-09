@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Shield, Lock, X, ArrowRight } from 'lucide-react';
-import { setIsWardenRemembered } from '../utils/storage';
+import { setWardenDeviceAuthenticated } from '../utils/storage';
 
 interface WardenAuthModalProps {
   correctPin: string;
@@ -19,8 +19,11 @@ export const WardenAuthModal: React.FC<WardenAuthModalProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (pin === (correctPin || 'Ramesh1234')) {
-      setIsWardenRemembered(rememberPasscode);
+    const cleanEntered = pin.trim();
+    const expected = (correctPin || 'Ramesh1234').trim();
+
+    if (cleanEntered === expected) {
+      setWardenDeviceAuthenticated(rememberPasscode);
       onSuccess();
     } else {
       setError(true);
@@ -74,16 +77,21 @@ export const WardenAuthModal: React.FC<WardenAuthModalProps> = ({
             )}
           </div>
 
-          {/* Remember Passcode Checkbox */}
-          <div className="pt-0.5 text-left">
-            <label className="flex items-center gap-2 cursor-pointer select-none text-xs text-slate-300">
+          {/* Stay Logged In / Remember Passcode Checkbox */}
+          <div className="pt-0.5 text-left bg-slate-800/50 p-2.5 rounded-xl border border-slate-700/60">
+            <label className="flex items-start gap-2.5 cursor-pointer select-none text-xs text-slate-200">
               <input
                 type="checkbox"
                 checked={rememberPasscode}
                 onChange={(e) => setRememberPasscode(e.target.checked)}
-                className="mt-0.5 rounded text-cyan-500 focus:ring-cyan-400 border-slate-700 bg-slate-800"
+                className="mt-0.5 rounded text-cyan-500 focus:ring-cyan-400 border-slate-700 bg-slate-800 cursor-pointer"
               />
-              <span>Remember passcode on this device</span>
+              <div className="flex-1">
+                <span className="font-semibold text-white">Stay logged in on this device</span>
+                <p className="text-[11px] text-slate-400 leading-tight mt-0.5">
+                  You won't have to enter the passcode again on this device.
+                </p>
+              </div>
             </label>
           </div>
 
@@ -91,7 +99,7 @@ export const WardenAuthModal: React.FC<WardenAuthModalProps> = ({
             type="submit"
             className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl font-semibold text-xs bg-cyan-600 hover:bg-cyan-500 text-white shadow-lg shadow-cyan-600/20 transition cursor-pointer"
           >
-            <span>Unlock Dashboard</span>
+            <span>Unlock & Enter Dashboard</span>
             <ArrowRight className="w-4 h-4" />
           </button>
         </form>

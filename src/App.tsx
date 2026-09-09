@@ -5,8 +5,10 @@ import {
   saveStoredSettings,
   getStoredEntries,
   saveStoredEntries,
-  getIsWardenRemembered,
-  setIsWardenRemembered,
+  isWardenDeviceAuthenticated,
+  setWardenDeviceAuthenticated,
+  getActiveView,
+  saveActiveView,
   ENTRIES_KEY,
 } from './utils/storage';
 import { formatTimestampTime } from './utils/timeUtils';
@@ -20,8 +22,11 @@ export default function App() {
   const [settings, setSettings] = useState<PoolSettings>(getStoredSettings);
   const [entries, setEntries] = useState<PoolEntry[]>(getStoredEntries);
 
-  // Modals & Panels
-  const [isWardenUnlocked, setIsWardenUnlocked] = useState(false);
+  // Persistent Warden Authentication
+  const [isWardenAuth, setIsWardenAuth] = useState<boolean>(() => isWardenDeviceAuthenticated());
+  // Active View: 'warden' | 'student'
+  const [activeView, setActiveView] = useState<'warden' | 'student'>(() => getActiveView());
+
   const [showWardenAuth, setShowWardenAuth] = useState(false);
   const [showQRPoster, setShowQRPoster] = useState(false);
 
@@ -67,12 +72,27 @@ export default function App() {
     };
   }, []);
 
-  // When warden unlocks panel, refresh immediately
+  // Listen for hash or popstate changes
   useEffect(() => {
-    if (isWardenUnlocked) {
+    const handleHashOrPopState = () => {
+      const view = getActiveView();
+      setActiveView(view);
+      setIsWardenAuth(isWardenDeviceAuthenticated());
+    };
+    window.addEventListener('popstate', handleHashOrPopState);
+    window.addEventListener('hashchange', handleHashOrPopState);
+    return () => {
+      window.removeEventListener('popstate', handleHashOrPopState);
+      window.removeEventListener('hashchange', handleHashOrPopState);
+    };
+  }, []);
+
+  // When in warden view and authenticated, refresh records
+  useEffect(() => {
+    if (activeView === 'warden' && isWardenAuth) {
       refreshRecords();
     }
-  }, [isWardenUnlocked, refreshRecords]);
+  }, [activeView, isWardenAuth, refreshRecords]);
 
   // Handle Student Check-In (ONLY Name & Room No)
   const handleCheckIn = async (data: { name: string; roomNumber: string }): Promise<PoolEntry | null> => {
@@ -112,18 +132,22 @@ export default function App() {
   return (
     <div className="relative min-h-screen bg-slate-950">
       {/* Student Entry Screen */}
-      <StudentEntryPortal
-        settings={settings}
-        todayEntriesCount={todayEntriesCount}
-        onCheckIn={handleCheckIn}
-        onOpenWardenLogin={() => {
-          if (isWardenUnlocked || getIsWardenRemembered()) {
-            setIsWardenUnlocked(true);
-          } else {
-            setShowWardenAuth(true);
-          }
-        }}
-      />
+      {(!isWardenAuth || activeView === 'student') && (
+        <StudentEntryPortal
+          settings={settings}
+          todayEntriesCount={todayEntriesCount}
+          onCheckIn={handleCheckIn}
+          isWardenLoggedIn={isWardenAuth}
+          onOpenWardenLogin={() => {
+            if (isWardenAuth) {
+              setActiveView('warden');
+              saveActiveView('warden');
+            } else {
+              setShowWardenAuth(true);
+            }
+          }}
+        />
+      )}
 
       {/* Warden Auth Modal (PIN prompt) */}
       {showWardenAuth && (
@@ -131,24 +155,31 @@ export default function App() {
           correctPin={settings.wardenPin}
           onSuccess={() => {
             setShowWardenAuth(false);
-            setIsWardenUnlocked(true);
+            setIsWardenAuth(true);
+            setActiveView('warden');
+            saveActiveView('warden');
           }}
           onClose={() => setShowWardenAuth(false)}
         />
       )}
 
       {/* Warden Management Panel */}
-      {isWardenUnlocked && (
+      {isWardenAuth && activeView === 'warden' && (
         <WardenPanel
           settings={settings}
           entries={entries}
           onUpdateSettings={handleUpdateSettings}
-          onClosePanel={() => setIsWardenUnlocked(false)}
+          onClosePanel={() => {
+            setActiveView('student');
+            saveActiveView('student');
+          }}
           onOpenQRPoster={() => setShowQRPoster(true)}
           onRefreshRecords={refreshRecords}
           onLockWarden={() => {
-            setIsWardenRemembered(false);
-            setIsWardenUnlocked(false);
+            setWardenDeviceAuthenticated(false);
+            setIsWardenAuth(false);
+            setActiveView('student');
+            saveActiveView('student');
           }}
         />
       )}

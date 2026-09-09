@@ -7,7 +7,6 @@ import {
   Clock,
   FileSpreadsheet,
   QrCode,
-  LogOut,
   Search,
   Download,
   AlertTriangle,
@@ -17,6 +16,7 @@ import {
   Calendar,
   RotateCw,
   Lock,
+  ExternalLink,
 } from 'lucide-react';
 
 interface WardenPanelProps {
@@ -150,19 +150,20 @@ export const WardenPanel: React.FC<WardenPanelProps> = ({
             <span>Entrance QR Code</span>
           </button>
           <button
-            onClick={onLockWarden}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-rose-950/60 hover:bg-rose-900/80 text-rose-300 border border-rose-800/60 rounded-xl transition cursor-pointer"
-            title="Forget saved passcode on this device"
-          >
-            <Lock className="w-3.5 h-3.5 text-rose-400" />
-            <span>Lock / Sign Out</span>
-          </button>
-          <button
             onClick={onClosePanel}
             className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xl transition cursor-pointer"
+            title="Switch to Student Entry form while keeping this device logged in"
           >
-            <LogOut className="w-3.5 h-3.5 text-slate-400" />
-            <span>Close</span>
+            <ExternalLink className="w-3.5 h-3.5 text-cyan-400" />
+            <span>Student Form</span>
+          </button>
+          <button
+            onClick={onLockWarden}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-rose-950/60 hover:bg-rose-900/80 text-rose-300 border border-rose-800/60 rounded-xl transition cursor-pointer"
+            title="Sign out of this device (passcode will be required next time)"
+          >
+            <Lock className="w-3.5 h-3.5 text-rose-400" />
+            <span>Sign Out Device</span>
           </button>
         </div>
       </header>
