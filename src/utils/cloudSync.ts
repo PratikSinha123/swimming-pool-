@@ -1,8 +1,8 @@
 import type { PoolEntry, PoolSettings } from '../types';
 
 // Fast, reliable KV endpoints with no request limit
-const KVDB_ENTRIES_URL = 'https://kvdb.io/FdXCyHjkaVYMvEACD3pVMF/pool_entries';
-const KVDB_SETTINGS_URL = 'https://kvdb.io/FdXCyHjkaVYMvEACD3pVMF/pool_settings';
+const KVDB_ENTRIES_URL = 'https://kvdb.io/FdXCyHjkaVYMvEACD3pVMF/pool_entries_v7';
+const KVDB_SETTINGS_URL = 'https://kvdb.io/FdXCyHjkaVYMvEACD3pVMF/pool_settings_v7';
 
 function getCacheBustUrl(baseUrl: string): string {
   const nonce = `${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;

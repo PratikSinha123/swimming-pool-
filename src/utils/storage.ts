@@ -1,7 +1,7 @@
 import type { PoolEntry, PoolSettings, MealBreak } from '../types';
 
-export const SETTINGS_KEY = 'hostel_pool_settings_v6';
-export const ENTRIES_KEY = 'hostel_pool_entries_v6';
+export const SETTINGS_KEY = 'hostel_pool_settings_v7';
+export const ENTRIES_KEY = 'hostel_pool_entries_v7';
 export const WARDEN_REMEMBERED_KEY = 'hostel_pool_warden_remembered_v1';
 export const WARDEN_PERMANENT_AUTH_KEY = 'hostel_pool_warden_permanent_auth_v2';
 export const ACTIVE_VIEW_KEY = 'hostel_pool_active_view_v2';
@@ -123,6 +123,10 @@ export function saveStoredSettings(settings: PoolSettings): void {
 export function getStoredEntries(): PoolEntry[] {
   if (typeof window === 'undefined') return [];
   try {
+    // Purge legacy storage keys so old test data is never revived
+    const legacyKeys = ['hostel_pool_entries_v6', 'hostel_pool_entries_v5', 'hostel_pool_entries_v4', 'hostel_pool_entries'];
+    legacyKeys.forEach((k) => localStorage.removeItem(k));
+
     const raw = localStorage.getItem(ENTRIES_KEY);
     if (!raw) return [];
     return JSON.parse(raw);
