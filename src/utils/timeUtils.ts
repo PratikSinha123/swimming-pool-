@@ -1,4 +1,4 @@
-import type { PoolOperatingStatus } from '../types';
+import type { PoolOperatingStatus, MealBreak } from '../types';
 
 /**
  * Converts 24h string ("17:30") to 12h string ("5:30 PM")
@@ -23,116 +23,108 @@ export function formatTimestampTime(timestamp: number | Date): string {
 }
 
 /**
- * Formats a Date or timestamp to "DD MMM YYYY, hh:mm A"
- */
-export function formatTimestampFull(timestamp: number | Date): string {
-  const d = new Date(timestamp);
-  return d.toLocaleDateString('en-US', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: true,
-  });
-}
-
-/**
- * Formats seconds into MM:SS or HH:MM:SS
- */
-export function formatSecondsToTimer(totalSeconds: number): string {
-  if (totalSeconds <= 0) return '00:00';
-  const hours = Math.floor(totalSeconds / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
-  const seconds = totalSeconds % 60;
-
-  if (hours > 0) {
-    return `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-  }
-  return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-}
-
-/**
- * Evaluates pool open/closed status based on warden settings and current time
+ * Evaluates pool open/closed status based on:
+ * 1. Manual warden override
+ * 2. General operating hours (e.g. 06:00 to 22:30 / 6:00 AM to 10:30 PM)
+ * 3. Meal break intervals (Breakfast, Lunch, Evening Snacks, Night Dinner)
  */
 export function checkPoolStatus(
   openTime24: string,
   closeTime24: string,
   isOpenManually: boolean,
+  mealBreaks: MealBreak[] = [],
   currentDate = new Date()
 ): PoolOperatingStatus {
-  const openTime12h = format24To12(openTime24);
-  const closeTime12h = format24To12(closeTime24);
+  const openTime12h = format24To12(openTime24 || '06:00');
+  const closeTime12h = format24To12(closeTime24 || '22:30');
   const currentTimeFormatted = formatTimestampTime(currentDate);
 
+  // 1. Manual override check
   if (!isOpenManually) {
     return {
       isOpen: false,
       statusText: 'Pool is Temporarily Closed',
-      reason: 'The warden has temporarily closed the pool for maintenance or safety.',
+      reason: 'The pool is currently closed for maintenance or safety.',
       currentTimeFormatted,
       openTime12h,
       closeTime12h,
     };
   }
 
-  const [openH, openM] = (openTime24 || '06:00').split(':').map(Number);
-  const [closeH, closeM] = (closeTime24 || '17:30').split(':').map(Number);
-
   const currentMinutes = currentDate.getHours() * 60 + currentDate.getMinutes();
+
+  const [openH, openM] = (openTime24 || '06:00').split(':').map(Number);
+  const [closeH, closeM] = (closeTime24 || '22:30').split(':').map(Number);
   const openMinutes = openH * 60 + openM;
   const closeMinutes = closeH * 60 + closeM;
 
-  let isOpen = false;
-  let timeUntilCloseMinutes = 0;
-  let timeUntilOpenMinutes = 0;
+  // 2. Check general pool hours (6:00 AM to 10:30 PM)
+  if (currentMinutes < openMinutes) {
+    return {
+      isOpen: false,
+      statusText: `Pool is Closed (Hours: ${openTime12h} – ${closeTime12h})`,
+      reason: `Opens today at ${openTime12h}.`,
+      currentTimeFormatted,
+      openTime12h,
+      closeTime12h,
+    };
+  }
 
-  if (openMinutes <= closeMinutes) {
-    // Normal daytime schedule (e.g., 06:00 to 17:30)
-    if (currentMinutes >= openMinutes && currentMinutes < closeMinutes) {
-      isOpen = true;
-      timeUntilCloseMinutes = closeMinutes - currentMinutes;
-    } else if (currentMinutes < openMinutes) {
-      isOpen = false;
-      timeUntilOpenMinutes = openMinutes - currentMinutes;
-    } else {
-      // past close time, opens tomorrow morning
-      isOpen = false;
-      timeUntilOpenMinutes = 24 * 60 - currentMinutes + openMinutes;
-    }
-  } else {
-    // Overnight schedule (e.g., 20:00 to 02:00)
-    if (currentMinutes >= openMinutes || currentMinutes < closeMinutes) {
-      isOpen = true;
-      if (currentMinutes >= openMinutes) {
-        timeUntilCloseMinutes = 24 * 60 - currentMinutes + closeMinutes;
-      } else {
-        timeUntilCloseMinutes = closeMinutes - currentMinutes;
-      }
-    } else {
-      isOpen = false;
-      timeUntilOpenMinutes = openMinutes - currentMinutes;
+  if (currentMinutes >= closeMinutes) {
+    return {
+      isOpen: false,
+      statusText: `Pool is Closed for the Night`,
+      reason: `Closed at ${closeTime12h}. Next session opens tomorrow at ${openTime12h}.`,
+      currentTimeFormatted,
+      openTime12h,
+      closeTime12h,
+    };
+  }
+
+  // 3. Check Meal Breaks / Intervals
+  const activeBreaks = (mealBreaks || []).filter((b) => b.enabled);
+  for (const b of activeBreaks) {
+    const [bStartH, bStartM] = b.startTime.split(':').map(Number);
+    const [bEndH, bEndM] = b.endTime.split(':').map(Number);
+    const bStartMin = bStartH * 60 + bStartM;
+    const bEndMin = bEndH * 60 + bEndM;
+
+    if (currentMinutes >= bStartMin && currentMinutes < bEndMin) {
+      const bEnd12 = format24To12(b.endTime);
+      return {
+        isOpen: false,
+        statusText: `Closed for ${b.name}`,
+        reason: `Pool is closed for ${b.name} (${format24To12(b.startTime)} – ${bEnd12}). Reopens at ${bEnd12}.`,
+        currentTimeFormatted,
+        openTime12h,
+        closeTime12h,
+        currentBreakName: b.name,
+      };
     }
   }
 
-  const statusText = isOpen
-    ? `Pool is Open (${openTime12h} – ${closeTime12h})`
-    : `Pool is Closed (${openTime12h} – ${closeTime12h})`;
+  // 4. Find next upcoming break or closing
+  let nextEventText = `Closes at ${closeTime12h}`;
+  const upcomingBreaks = activeBreaks
+    .map((b) => {
+      const [h, m] = b.startTime.split(':').map(Number);
+      return { ...b, startMin: h * 60 + m };
+    })
+    .filter((b) => b.startMin > currentMinutes)
+    .sort((a, b) => a.startMin - b.startMin);
 
-  const reason = !isOpen
-    ? currentMinutes < openMinutes
-      ? `Opens today at ${openTime12h}`
-      : `Closed for today. Opens tomorrow at ${openTime12h}`
-    : undefined;
+  if (upcomingBreaks.length > 0) {
+    const nextB = upcomingBreaks[0];
+    nextEventText = `Next break: ${nextB.name} at ${format24To12(nextB.startTime)}`;
+  }
 
   return {
-    isOpen,
-    statusText,
-    reason,
+    isOpen: true,
+    statusText: `Pool is Open (${openTime12h} – ${closeTime12h})`,
+    reason: undefined,
     currentTimeFormatted,
     openTime12h,
     closeTime12h,
-    timeUntilCloseMinutes,
-    timeUntilOpenMinutes,
+    nextEventText,
   };
 }

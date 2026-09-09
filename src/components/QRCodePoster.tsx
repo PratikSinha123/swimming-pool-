@@ -97,8 +97,17 @@ export const QRCodePoster: React.FC<QRCodePosterProps> = ({ settings, onClose })
             <div className="text-lg font-bold text-white print:text-black flex items-center justify-between">
               <span>{openTime12} – {closeTime12}</span>
               <span className="text-xs font-normal text-slate-400 print:text-slate-600">
-                Entry Registration Required
+                Registration Required
               </span>
+            </div>
+            <div className="mt-2.5 pt-2 border-t border-cyan-900/60 print:border-slate-200 text-[11px] text-slate-400 print:text-slate-600">
+              <span className="font-semibold text-cyan-300 print:text-cyan-900 block mb-0.5">Closed During Meal Intervals:</span>
+              <div className="grid grid-cols-2 gap-1 text-[10px]">
+                <span>• Breakfast: 7:30 – 9:00 AM</span>
+                <span>• Lunch: 12:00 – 2:00 PM</span>
+                <span>• Snacks: 5:30 – 6:30 PM</span>
+                <span>• Dinner: 8:00 – 9:15 PM</span>
+              </div>
             </div>
           </div>
 

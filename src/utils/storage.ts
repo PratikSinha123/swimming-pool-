@@ -1,17 +1,25 @@
-import type { PoolEntry, PoolSettings } from '../types';
+import type { PoolEntry, PoolSettings, MealBreak } from '../types';
 
-export const SETTINGS_KEY = 'hostel_pool_settings_v5';
-export const ENTRIES_KEY = 'hostel_pool_entries_v5';
+export const SETTINGS_KEY = 'hostel_pool_settings_v6';
+export const ENTRIES_KEY = 'hostel_pool_entries_v6';
+
+export const DEFAULT_MEAL_BREAKS: MealBreak[] = [
+  { id: 'breakfast', name: 'Morning Breakfast', startTime: '07:30', endTime: '09:00', enabled: true },
+  { id: 'lunch', name: 'Lunch Interval', startTime: '12:00', endTime: '14:00', enabled: true },
+  { id: 'snacks', name: 'Evening Snacks', startTime: '17:30', endTime: '18:30', enabled: true },
+  { id: 'dinner', name: 'Night Meal / Dinner', startTime: '20:00', endTime: '21:15', enabled: true },
+];
 
 export const DEFAULT_SETTINGS: PoolSettings = {
   poolName: 'Hostel Swimming Pool',
   hostelName: 'Hostel Campus',
   openTime: '06:00', // 6:00 AM
-  closeTime: '17:30', // 5:30 PM
+  closeTime: '22:30', // 10:30 PM
   isOpenManually: true,
   wardenPin: 'Ramesh1234',
   googleSheetsWebhookUrl: '',
   appUrl: typeof window !== 'undefined' ? window.location.origin : '',
+  mealBreaks: DEFAULT_MEAL_BREAKS,
 };
 
 export function getStoredSettings(): PoolSettings {
@@ -20,7 +28,11 @@ export function getStoredSettings(): PoolSettings {
     const raw = localStorage.getItem(SETTINGS_KEY);
     if (!raw) return DEFAULT_SETTINGS;
     const parsed = JSON.parse(raw);
-    return { ...DEFAULT_SETTINGS, ...parsed };
+    return {
+      ...DEFAULT_SETTINGS,
+      ...parsed,
+      mealBreaks: parsed.mealBreaks || DEFAULT_MEAL_BREAKS,
+    };
   } catch (err) {
     console.error('Failed to parse settings:', err);
     return DEFAULT_SETTINGS;

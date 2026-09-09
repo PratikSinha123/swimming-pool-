@@ -467,7 +467,83 @@ export const WardenPanel: React.FC<WardenPanelProps> = ({
                 </div>
 
                 <div className="p-3 bg-cyan-950/40 border border-cyan-800/40 rounded-xl text-xs text-cyan-200">
-                  ℹ️ <strong>Enforced Rule:</strong> Outside these hours (e.g. after {format24To12(draftSettings.closeTime)} or before {format24To12(draftSettings.openTime)}), student QR check-in is locked and displays a notice.
+                  ℹ️ <strong>Enforced Rule:</strong> Outside these hours (e.g. after {format24To12(draftSettings.closeTime)} or before {format24To12(draftSettings.openTime)}), student QR check-in is locked.
+                </div>
+              </div>
+
+              {/* MEAL BREAKS & INTERVALS CONFIGURATION */}
+              <div className="bg-slate-800/60 border border-slate-700/80 rounded-2xl p-5 space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-cyan-400 uppercase tracking-wider">
+                    Meal Intervals (Pool Closed During Breaks)
+                  </span>
+                  <span className="text-xs text-slate-400">
+                    Hostel Meal Schedule
+                  </span>
+                </div>
+                <p className="text-xs text-slate-400">
+                  The pool will automatically close during these intervals and reopen when the break ends. You can adjust times or toggle any break.
+                </p>
+
+                <div className="space-y-3">
+                  {(draftSettings.mealBreaks || []).map((item, idx) => (
+                    <div
+                      key={item.id}
+                      className={`p-3.5 rounded-xl border transition flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
+                        item.enabled ? 'bg-slate-900/90 border-slate-700' : 'bg-slate-900/40 border-slate-800 opacity-60'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const updatedBreaks = [...draftSettings.mealBreaks];
+                            updatedBreaks[idx] = { ...item, enabled: !item.enabled };
+                            setDraftSettings({ ...draftSettings, mealBreaks: updatedBreaks });
+                          }}
+                          className={`relative inline-flex h-5 w-9 items-center rounded-full transition cursor-pointer ${
+                            item.enabled ? 'bg-cyan-500' : 'bg-slate-700'
+                          }`}
+                        >
+                          <span
+                            className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition ${
+                              item.enabled ? 'translate-x-4' : 'translate-x-1'
+                            }`}
+                          />
+                        </button>
+                        <div>
+                          <span className="text-xs font-bold text-white block">{item.name}</span>
+                          <span className="text-[11px] text-cyan-400 font-mono">
+                            {format24To12(item.startTime)} – {format24To12(item.endTime)}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="time"
+                          value={item.startTime}
+                          onChange={(e) => {
+                            const updatedBreaks = [...draftSettings.mealBreaks];
+                            updatedBreaks[idx] = { ...item, startTime: e.target.value };
+                            setDraftSettings({ ...draftSettings, mealBreaks: updatedBreaks });
+                          }}
+                          className="bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1 text-xs text-white font-mono focus:outline-none focus:border-cyan-400"
+                        />
+                        <span className="text-xs text-slate-500">to</span>
+                        <input
+                          type="time"
+                          value={item.endTime}
+                          onChange={(e) => {
+                            const updatedBreaks = [...draftSettings.mealBreaks];
+                            updatedBreaks[idx] = { ...item, endTime: e.target.value };
+                            setDraftSettings({ ...draftSettings, mealBreaks: updatedBreaks });
+                          }}
+                          className="bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1 text-xs text-white font-mono focus:outline-none focus:border-cyan-400"
+                        />
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
 

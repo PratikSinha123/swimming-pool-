@@ -29,7 +29,7 @@ export const StudentEntryPortal: React.FC<StudentEntryPortalProps> = ({
   // Live status & current time update every second
   const [currentTime, setCurrentTime] = useState<string>(() => formatTimestampTime(Date.now()));
   const [poolStatus, setPoolStatus] = useState<PoolOperatingStatus>(() =>
-    checkPoolStatus(settings.openTime, settings.closeTime, settings.isOpenManually)
+    checkPoolStatus(settings.openTime, settings.closeTime, settings.isOpenManually, settings.mealBreaks)
   );
 
   // Form states - ONLY Student Name & Room No as requested
@@ -46,7 +46,7 @@ export const StudentEntryPortal: React.FC<StudentEntryPortalProps> = ({
     const timer = setInterval(() => {
       const now = Date.now();
       setCurrentTime(formatTimestampTime(now));
-      setPoolStatus(checkPoolStatus(settings.openTime, settings.closeTime, settings.isOpenManually));
+      setPoolStatus(checkPoolStatus(settings.openTime, settings.closeTime, settings.isOpenManually, settings.mealBreaks));
     }, 1000);
     return () => clearInterval(timer);
   }, [settings]);
@@ -201,7 +201,7 @@ export const StudentEntryPortal: React.FC<StudentEntryPortalProps> = ({
               {/* Operating Hours Display */}
               <div className="flex items-baseline justify-between mt-2 pt-2 border-t border-slate-800/80">
                 <div className="text-xs text-slate-300">
-                  <span className="text-slate-400">Daily Hours: </span>
+                  <span className="text-slate-400">Hours: </span>
                   <span className="font-semibold text-white">
                     {poolStatus.openTime12h} – {poolStatus.closeTime12h}
                   </span>
@@ -210,6 +210,13 @@ export const StudentEntryPortal: React.FC<StudentEntryPortalProps> = ({
                   {todayEntriesCount} Entries Today
                 </div>
               </div>
+
+              {/* Upcoming Event / Meal Break Reminder */}
+              {poolStatus.isOpen && poolStatus.nextEventText && (
+                <div className="mt-2 pt-1 text-[11px] text-cyan-300/90 flex items-center gap-1 font-medium">
+                  <span>ℹ️ {poolStatus.nextEventText}</span>
+                </div>
+              )}
 
               {/* Closed notice */}
               {!poolStatus.isOpen && poolStatus.reason && (
