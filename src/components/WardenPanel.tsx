@@ -188,7 +188,7 @@ export const WardenPanel: React.FC<WardenPanelProps> = ({
         {activeTab === 'records' && (
           <div className="space-y-6">
             {/* Top Stat Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {/* Today's Entries */}
               <div className="bg-slate-900/90 border border-cyan-900/40 rounded-2xl p-5 shadow-lg">
                 <div className="flex items-center justify-between text-xs text-slate-400 font-medium mb-1">
@@ -197,7 +197,7 @@ export const WardenPanel: React.FC<WardenPanelProps> = ({
                 </div>
                 <div className="text-3xl font-bold text-white tracking-tight">
                   {todayEntries.length}{' '}
-                  <span className="text-sm font-normal text-slate-400">students recorded</span>
+                  <span className="text-sm font-normal text-slate-400">recorded</span>
                 </div>
                 <span className="block text-[11px] text-emerald-400 mt-2">
                   Total all-time records: {entries.length}
@@ -221,7 +221,7 @@ export const WardenPanel: React.FC<WardenPanelProps> = ({
                 </div>
                 <button
                   onClick={() => setActiveTab('settings')}
-                  className="mt-2 text-xs text-cyan-400 hover:underline flex items-center gap-1 font-medium"
+                  className="mt-2 text-xs text-cyan-400 hover:underline flex items-center gap-1 font-medium cursor-pointer"
                 >
                   Change operating hours →
                 </button>
@@ -246,9 +246,26 @@ export const WardenPanel: React.FC<WardenPanelProps> = ({
                 </div>
                 <button
                   onClick={() => setActiveTab('sheets')}
-                  className="mt-2 text-xs text-cyan-400 hover:underline flex items-center gap-1 font-medium"
+                  className="mt-2 text-xs text-cyan-400 hover:underline flex items-center gap-1 font-medium cursor-pointer"
                 >
                   Configure webhook →
+                </button>
+              </div>
+
+              {/* Entrance QR Poster Card */}
+              <div className="bg-slate-900/90 border border-cyan-800/40 rounded-2xl p-5 shadow-lg">
+                <div className="flex items-center justify-between text-xs text-slate-400 font-medium mb-1">
+                  <span>Entrance QR Code</span>
+                  <QrCode className="w-4 h-4 text-cyan-400" />
+                </div>
+                <div className="text-lg font-bold text-white tracking-tight mt-1">
+                  Scannable Poster
+                </div>
+                <button
+                  onClick={onOpenQRPoster}
+                  className="mt-2 text-xs text-cyan-400 hover:underline flex items-center gap-1 font-medium cursor-pointer"
+                >
+                  View & Print QR Poster →
                 </button>
               </div>
             </div>

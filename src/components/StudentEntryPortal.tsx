@@ -9,7 +9,6 @@ import {
   CheckCircle2,
   AlertTriangle,
   ShieldCheck,
-  Sparkles,
   Phone,
   IdCard,
   Building,
@@ -21,7 +20,6 @@ interface StudentEntryPortalProps {
   todayEntriesCount: number;
   onCheckIn: (entry: Omit<PoolEntry, 'id' | 'entryTimestamp' | 'entryTimeFormatted' | 'dateStr'>) => Promise<PoolEntry | null>;
   onOpenWardenLogin: () => void;
-  onOpenQRPoster: () => void;
 }
 
 export const StudentEntryPortal: React.FC<StudentEntryPortalProps> = ({
@@ -29,7 +27,6 @@ export const StudentEntryPortal: React.FC<StudentEntryPortalProps> = ({
   todayEntriesCount,
   onCheckIn,
   onOpenWardenLogin,
-  onOpenQRPoster,
 }) => {
   // Live status update
   const [poolStatus, setPoolStatus] = useState<PoolOperatingStatus>(() =>
@@ -134,17 +131,8 @@ export const StudentEntryPortal: React.FC<StudentEntryPortalProps> = ({
 
         <div className="flex items-center gap-2">
           <button
-            onClick={onOpenQRPoster}
-            className="p-2 rounded-xl text-xs font-medium bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-700/60 transition flex items-center gap-1.5"
-            title="View entrance QR code poster"
-          >
-            <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
-            <span className="hidden sm:inline">QR Poster</span>
-          </button>
-
-          <button
             onClick={onOpenWardenLogin}
-            className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-cyan-950/60 hover:bg-cyan-900/80 text-cyan-300 border border-cyan-800/60 transition"
+            className="px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-cyan-950/60 hover:bg-cyan-900/80 text-cyan-300 border border-cyan-800/60 transition cursor-pointer"
           >
             Warden
           </button>

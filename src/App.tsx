@@ -73,7 +73,6 @@ export default function App() {
             setShowWardenAuth(true);
           }
         }}
-        onOpenQRPoster={() => setShowQRPoster(true)}
       />
 
       {/* Warden Auth Modal (PIN prompt) */}
