@@ -41,11 +41,24 @@ export default function App() {
   const refreshSettings = useCallback(async () => {
     try {
       const cloudSettings = await fetchSettingsFromCloud();
-      if (cloudSettings) {
+      if (cloudSettings && cloudSettings.openTime && cloudSettings.closeTime) {
         setSettings((prev) => {
-          if (!prev.updatedAt || (cloudSettings.updatedAt && cloudSettings.updatedAt > prev.updatedAt)) {
-            saveStoredSettings(cloudSettings);
-            return cloudSettings;
+          const hasChanged =
+            prev.openTime !== cloudSettings.openTime ||
+            prev.closeTime !== cloudSettings.closeTime ||
+            prev.isOpenManually !== cloudSettings.isOpenManually ||
+            prev.poolName !== cloudSettings.poolName ||
+            prev.hostelName !== cloudSettings.hostelName ||
+            prev.wardenPin !== cloudSettings.wardenPin ||
+            JSON.stringify(prev.mealBreaks) !== JSON.stringify(cloudSettings.mealBreaks);
+
+          if (hasChanged || (cloudSettings.updatedAt && cloudSettings.updatedAt !== prev.updatedAt)) {
+            const merged = {
+              ...prev,
+              ...cloudSettings,
+            };
+            saveStoredSettings(merged);
+            return merged;
           }
           return prev;
         });
@@ -87,15 +100,30 @@ export default function App() {
     return combined;
   }, [settings.googleSheetsWebhookUrl]);
 
-  // Initial mount sync & real-time periodic polling (every 5 seconds) across devices for BOTH entries and settings
+  // Initial mount sync, tab visibility sync, & periodic polling (every 3 seconds)
   useEffect(() => {
     refreshRecords();
     refreshSettings();
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        refreshRecords();
+        refreshSettings();
+      }
+    };
+    window.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleVisibilityChange);
+
     const timer = setInterval(() => {
       refreshRecords();
       refreshSettings();
-    }, 5000);
-    return () => clearInterval(timer);
+    }, 3000);
+
+    return () => {
+      window.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleVisibilityChange);
+      clearInterval(timer);
+    };
   }, [refreshRecords, refreshSettings]);
 
   // Sync across tabs and windows
@@ -180,16 +208,14 @@ export default function App() {
   };
 
   // Handle Settings Update (Saves locally and broadcasts to ALL phones/devices via cloud)
-  const handleUpdateSettings = (newSettings: PoolSettings) => {
+  const handleUpdateSettings = async (newSettings: PoolSettings): Promise<void> => {
     const updatedWithTimestamp: PoolSettings = {
       ...newSettings,
       updatedAt: Date.now(),
     };
     setSettings(updatedWithTimestamp);
     saveStoredSettings(updatedWithTimestamp);
-    pushSettingsToCloud(updatedWithTimestamp).catch((e) =>
-      console.warn('Cloud settings push error:', e)
-    );
+    await pushSettingsToCloud(updatedWithTimestamp);
   };
 
   const todayStr = new Date().toLocaleDateString('en-CA');

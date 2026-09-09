@@ -22,7 +22,7 @@ import {
 interface WardenPanelProps {
   settings: PoolSettings;
   entries: PoolEntry[];
-  onUpdateSettings: (newSettings: PoolSettings) => void;
+  onUpdateSettings: (newSettings: PoolSettings) => Promise<void> | void;
   onClosePanel: () => void;
   onOpenQRPoster: () => void;
   onRefreshRecords: () => void;
@@ -44,6 +44,7 @@ export const WardenPanel: React.FC<WardenPanelProps> = ({
   // Local settings draft form
   const [draftSettings, setDraftSettings] = useState<PoolSettings>({ ...settings });
   const [settingsSaved, setSettingsSaved] = useState(false);
+  const [isSavingSettings, setIsSavingSettings] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Keep draft settings synced when newer settings are received from cloud
@@ -69,14 +70,19 @@ export const WardenPanel: React.FC<WardenPanelProps> = ({
     setTimeout(() => setIsRefreshing(false), 500);
   };
 
-  const handleSaveSettings = (e: React.FormEvent) => {
+  const handleSaveSettings = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSavingSettings(true);
     const toSave: PoolSettings = {
       ...draftSettings,
       updatedAt: Date.now(),
     };
     setDraftSettings(toSave);
-    onUpdateSettings(toSave);
+    try {
+      await onUpdateSettings(toSave);
+    } finally {
+      setIsSavingSettings(false);
+    }
     setSettingsSaved(true);
     setTimeout(() => setSettingsSaved(false), 4000);
   };
@@ -661,10 +667,20 @@ export const WardenPanel: React.FC<WardenPanelProps> = ({
               <div className="pt-2">
                 <button
                   type="submit"
-                  className="w-full py-3.5 px-5 rounded-xl font-bold text-sm bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white shadow-lg shadow-cyan-500/25 transition cursor-pointer flex items-center justify-center gap-2 active:scale-98"
+                  disabled={isSavingSettings}
+                  className="w-full py-3.5 px-5 rounded-xl font-bold text-sm bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white shadow-lg shadow-cyan-500/25 transition cursor-pointer flex items-center justify-center gap-2 active:scale-98 disabled:opacity-75 disabled:cursor-wait"
                 >
-                  <CheckCircle className="w-4 h-4" />
-                  <span>Save & Broadcast Settings to All Devices</span>
+                  {isSavingSettings ? (
+                    <>
+                      <RotateCw className="w-4 h-4 animate-spin text-cyan-300" />
+                      <span>Broadcasting to all devices...</span>
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle className="w-4 h-4" />
+                      <span>Save & Broadcast Settings to All Devices</span>
+                    </>
+                  )}
                 </button>
               </div>
             </form>
