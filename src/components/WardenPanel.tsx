@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import type { PoolEntry, PoolSettings } from '../types';
 import { format24To12 } from '../utils/timeUtils';
 import { GOOGLE_APPS_SCRIPT_TEMPLATE } from '../utils/googleSheets';
@@ -45,6 +45,11 @@ export const WardenPanel: React.FC<WardenPanelProps> = ({
   const [draftSettings, setDraftSettings] = useState<PoolSettings>({ ...settings });
   const [settingsSaved, setSettingsSaved] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Keep draft settings synced when settings are updated from cloud
+  useEffect(() => {
+    setDraftSettings({ ...settings });
+  }, [settings]);
 
   // History search & filter
   const [searchQuery, setSearchQuery] = useState('');

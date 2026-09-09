@@ -13,7 +13,13 @@ import {
 } from './utils/storage';
 import { formatTimestampTime } from './utils/timeUtils';
 import { syncEntryWithGoogleSheets, fetchEntriesFromGoogleSheets } from './utils/googleSheets';
-import { pushEntriesToCloud, fetchEntriesFromCloud, mergeEntries } from './utils/cloudSync';
+import {
+  pushEntriesToCloud,
+  fetchEntriesFromCloud,
+  mergeEntries,
+  pushSettingsToCloud,
+  fetchSettingsFromCloud,
+} from './utils/cloudSync';
 import { StudentEntryPortal } from './components/StudentEntryPortal';
 import { WardenPanel } from './components/WardenPanel';
 import { WardenAuthModal } from './components/WardenAuthModal';
@@ -30,6 +36,24 @@ export default function App() {
 
   const [showWardenAuth, setShowWardenAuth] = useState(false);
   const [showQRPoster, setShowQRPoster] = useState(false);
+
+  // Refresh settings from Central Cloud Storage (so time changes made on one phone propagate to all phones)
+  const refreshSettings = useCallback(async () => {
+    try {
+      const cloudSettings = await fetchSettingsFromCloud();
+      if (cloudSettings) {
+        setSettings((prev) => {
+          if (!prev.updatedAt || (cloudSettings.updatedAt && cloudSettings.updatedAt > prev.updatedAt)) {
+            saveStoredSettings(cloudSettings);
+            return cloudSettings;
+          }
+          return prev;
+        });
+      }
+    } catch (err) {
+      console.warn('Settings cloud sync warning:', err);
+    }
+  }, []);
 
   // Refresh records from local storage, Central Cloud Sync, and Google Sheets
   const refreshRecords = useCallback(async () => {
@@ -63,14 +87,16 @@ export default function App() {
     return combined;
   }, [settings.googleSheetsWebhookUrl]);
 
-  // Initial mount sync & real-time periodic polling (every 5 seconds) across devices
+  // Initial mount sync & real-time periodic polling (every 5 seconds) across devices for BOTH entries and settings
   useEffect(() => {
     refreshRecords();
+    refreshSettings();
     const timer = setInterval(() => {
       refreshRecords();
+      refreshSettings();
     }, 5000);
     return () => clearInterval(timer);
-  }, [refreshRecords]);
+  }, [refreshRecords, refreshSettings]);
 
   // Sync across tabs and windows
   useEffect(() => {
@@ -153,10 +179,17 @@ export default function App() {
     return newEntry;
   };
 
-  // Handle Settings Update
+  // Handle Settings Update (Saves locally and broadcasts to ALL phones/devices via cloud)
   const handleUpdateSettings = (newSettings: PoolSettings) => {
-    setSettings(newSettings);
-    saveStoredSettings(newSettings);
+    const updatedWithTimestamp: PoolSettings = {
+      ...newSettings,
+      updatedAt: Date.now(),
+    };
+    setSettings(updatedWithTimestamp);
+    saveStoredSettings(updatedWithTimestamp);
+    pushSettingsToCloud(updatedWithTimestamp).catch((e) =>
+      console.warn('Cloud settings push error:', e)
+    );
   };
 
   const todayStr = new Date().toLocaleDateString('en-CA');

@@ -28,6 +28,7 @@ export interface PoolSettings {
   googleSheetsWebhookUrl: string;
   appUrl: string;
   mealBreaks: MealBreak[];
+  updatedAt?: number;
 }
 
 export interface PoolOperatingStatus {
