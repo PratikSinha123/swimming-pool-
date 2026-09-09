@@ -25,7 +25,8 @@ export function formatTimestampTime(timestamp: number | Date): string {
 /**
  * Evaluates pool open/closed status based on:
  * 1. Manual warden override
- * 2. General operating hours (e.g. 06:00 to 22:30 / 6:00 AM to 10:30 PM)
+ * 2. General operating hours — supports overnight schedules
+ *    (e.g., open 06:00 → close 00:30 means open from 6 AM to 12:30 AM next day)
  * 3. Meal break intervals (Breakfast, Lunch, Evening Snacks, Night Dinner)
  */
 export function checkPoolStatus(
@@ -58,19 +59,48 @@ export function checkPoolStatus(
   const openMinutes = openH * 60 + openM;
   const closeMinutes = closeH * 60 + closeM;
 
-  // 2. Check general pool hours (6:00 AM to 10:30 PM)
-  if (currentMinutes < openMinutes) {
-    return {
-      isOpen: false,
-      statusText: `Pool is Closed (Hours: ${openTime12h} – ${closeTime12h})`,
-      reason: `Opens today at ${openTime12h}.`,
-      currentTimeFormatted,
-      openTime12h,
-      closeTime12h,
-    };
+  // 2. Check general pool hours
+  // Detect overnight schedule: closeTime < openTime means it crosses midnight
+  // e.g., open=06:00 (360min), close=00:30 (30min) → overnight
+  const isOvernightSchedule = closeMinutes <= openMinutes;
+
+  let isWithinOperatingHours: boolean;
+
+  if (isOvernightSchedule) {
+    // Overnight: open from openMinutes → midnight → closeMinutes
+    // Pool is OPEN if: currentMinutes >= openMinutes OR currentMinutes < closeMinutes
+    // Pool is CLOSED if: currentMinutes >= closeMinutes AND currentMinutes < openMinutes
+    isWithinOperatingHours = currentMinutes >= openMinutes || currentMinutes < closeMinutes;
+  } else {
+    // Same-day: open from openMinutes → closeMinutes
+    // Pool is OPEN if: openMinutes <= currentMinutes < closeMinutes
+    isWithinOperatingHours = currentMinutes >= openMinutes && currentMinutes < closeMinutes;
   }
 
-  if (currentMinutes >= closeMinutes) {
+  if (!isWithinOperatingHours) {
+    // Determine appropriate closed message
+    if (!isOvernightSchedule && currentMinutes < openMinutes) {
+      return {
+        isOpen: false,
+        statusText: `Pool is Closed (Hours: ${openTime12h} – ${closeTime12h})`,
+        reason: `Opens today at ${openTime12h}.`,
+        currentTimeFormatted,
+        openTime12h,
+        closeTime12h,
+      };
+    }
+
+    if (isOvernightSchedule && currentMinutes >= closeMinutes && currentMinutes < openMinutes) {
+      return {
+        isOpen: false,
+        statusText: `Pool is Closed (Hours: ${openTime12h} – ${closeTime12h})`,
+        reason: `Opens today at ${openTime12h}.`,
+        currentTimeFormatted,
+        openTime12h,
+        closeTime12h,
+      };
+    }
+
     return {
       isOpen: false,
       statusText: `Pool is Closed for the Night`,
