@@ -46,10 +46,12 @@ export const WardenPanel: React.FC<WardenPanelProps> = ({
   const [settingsSaved, setSettingsSaved] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // Keep draft settings synced when settings are updated from cloud
+  // Keep draft settings synced when newer settings are received from cloud
   useEffect(() => {
-    setDraftSettings({ ...settings });
-  }, [settings]);
+    if (settings.updatedAt && (!draftSettings.updatedAt || settings.updatedAt > draftSettings.updatedAt)) {
+      setDraftSettings({ ...settings });
+    }
+  }, [settings, draftSettings.updatedAt]);
 
   // History search & filter
   const [searchQuery, setSearchQuery] = useState('');
@@ -69,9 +71,14 @@ export const WardenPanel: React.FC<WardenPanelProps> = ({
 
   const handleSaveSettings = (e: React.FormEvent) => {
     e.preventDefault();
-    onUpdateSettings(draftSettings);
+    const toSave: PoolSettings = {
+      ...draftSettings,
+      updatedAt: Date.now(),
+    };
+    setDraftSettings(toSave);
+    onUpdateSettings(toSave);
     setSettingsSaved(true);
-    setTimeout(() => setSettingsSaved(false), 3000);
+    setTimeout(() => setSettingsSaved(false), 4000);
   };
 
   const handleCopyAppsScript = () => {
@@ -444,9 +451,12 @@ export const WardenPanel: React.FC<WardenPanelProps> = ({
             </div>
 
             {settingsSaved && (
-              <div className="mb-6 p-3.5 rounded-xl bg-emerald-950/60 border border-emerald-700 text-xs text-emerald-300 flex items-center gap-2">
-                <CheckCircle className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-                <span>Operating hours and pool settings have been saved successfully!</span>
+              <div className="mb-6 p-3.5 rounded-xl bg-emerald-950/80 border border-emerald-600 text-xs text-emerald-200 flex items-center gap-2.5 shadow-lg shadow-emerald-950/40 animate-fade-in">
+                <CheckCircle className="w-5 h-5 text-emerald-400 flex-shrink-0" />
+                <div>
+                  <span className="font-bold block text-white">Settings Saved & Broadcast Successfully!</span>
+                  <span className="text-emerald-300">All phones and computers will automatically sync and use these new hours.</span>
+                </div>
               </div>
             )}
 
@@ -651,9 +661,10 @@ export const WardenPanel: React.FC<WardenPanelProps> = ({
               <div className="pt-2">
                 <button
                   type="submit"
-                  className="w-full py-3 px-5 rounded-xl font-bold text-sm bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white shadow-lg shadow-cyan-500/25 transition cursor-pointer"
+                  className="w-full py-3.5 px-5 rounded-xl font-bold text-sm bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white shadow-lg shadow-cyan-500/25 transition cursor-pointer flex items-center justify-center gap-2 active:scale-98"
                 >
-                  Save Settings & Operating Hours
+                  <CheckCircle className="w-4 h-4" />
+                  <span>Save & Broadcast Settings to All Devices</span>
                 </button>
               </div>
             </form>

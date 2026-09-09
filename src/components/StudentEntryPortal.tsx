@@ -49,12 +49,19 @@ export const StudentEntryPortal: React.FC<StudentEntryPortalProps> = ({
   // Last submitted record (confirmation banner)
   const [lastSubmittedEntry, setLastSubmittedEntry] = useState<PoolEntry | null>(null);
 
-  // Live timer tick
+  // Live timer tick and status check
   useEffect(() => {
+    // Immediately calculate when settings change
+    setPoolStatus(
+      checkPoolStatus(settings.openTime, settings.closeTime, settings.isOpenManually, settings.mealBreaks)
+    );
+
     const timer = setInterval(() => {
       const now = Date.now();
       setCurrentTime(formatTimestampTime(now));
-      setPoolStatus(checkPoolStatus(settings.openTime, settings.closeTime, settings.isOpenManually, settings.mealBreaks));
+      setPoolStatus(
+        checkPoolStatus(settings.openTime, settings.closeTime, settings.isOpenManually, settings.mealBreaks)
+      );
     }, 1000);
     return () => clearInterval(timer);
   }, [settings]);
