@@ -87,7 +87,7 @@ export const DEFAULT_SETTINGS: PoolSettings = {
   poolName: 'Hostel Swimming Pool',
   hostelName: 'Hostel Campus',
   openTime: '06:00', // 6:00 AM
-  closeTime: '02:00', // 2:00 AM late night
+  closeTime: '22:30', // 10:30 PM
   isOpenManually: true,
   wardenPin: 'Ramesh1234',
   appUrl: PRODUCTION_URL,

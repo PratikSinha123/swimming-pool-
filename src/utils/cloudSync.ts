@@ -45,9 +45,7 @@ export async function fetchSettingsFromCloud(): Promise<PoolSettings | null> {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
-        'Cache-Control': 'no-cache',
       },
-      cache: 'no-store',
     });
 
     if (res.ok) {
@@ -97,9 +95,7 @@ export async function fetchEntriesFromCloud(retries = 2): Promise<PoolEntry[] | 
         method: 'GET',
         headers: {
           'Accept': 'application/json',
-          'Cache-Control': 'no-cache',
         },
-        cache: 'no-store',
       });
 
       if (res.ok) {
