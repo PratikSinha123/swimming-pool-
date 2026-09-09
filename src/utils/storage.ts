@@ -1,11 +1,11 @@
 import type { PoolEntry, PoolSettings } from '../types';
 
-const SETTINGS_KEY = 'hostel_pool_settings_v3';
-const ENTRIES_KEY = 'hostel_pool_entries_v3';
+const SETTINGS_KEY = 'hostel_pool_settings';
+const ENTRIES_KEY = 'hostel_pool_entries';
 
 export const DEFAULT_SETTINGS: PoolSettings = {
   poolName: 'Hostel Swimming Pool',
-  hostelName: 'Hostel Residency',
+  hostelName: 'Hostel Campus',
   openTime: '06:00', // 6:00 AM
   closeTime: '17:30', // 5:30 PM
   isOpenManually: true,
@@ -38,43 +38,7 @@ export function getStoredEntries(): PoolEntry[] {
   if (typeof window === 'undefined') return [];
   try {
     const raw = localStorage.getItem(ENTRIES_KEY);
-    if (!raw) {
-      // Seed sample records for realistic display
-      const sampleEntries: PoolEntry[] = [
-        {
-          id: 'seed-1',
-          name: 'Aarav Sharma',
-          roomNumber: 'B-204',
-          studentId: 'HS2023-042',
-          phone: '9876543210',
-          entryTimestamp: Date.now() - 45 * 60 * 1000,
-          entryTimeFormatted: new Date(Date.now() - 45 * 60 * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true }),
-          dateStr: new Date().toISOString().split('T')[0],
-        },
-        {
-          id: 'seed-2',
-          name: 'Rohan Verma',
-          roomNumber: 'A-112',
-          studentId: 'HS2022-118',
-          phone: '9812345678',
-          entryTimestamp: Date.now() - 90 * 60 * 1000,
-          entryTimeFormatted: new Date(Date.now() - 90 * 60 * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true }),
-          dateStr: new Date().toISOString().split('T')[0],
-        },
-        {
-          id: 'seed-3',
-          name: 'Kabir Patel',
-          roomNumber: 'C-305',
-          studentId: 'HS2024-089',
-          phone: '9899123456',
-          entryTimestamp: Date.now() - 140 * 60 * 1000,
-          entryTimeFormatted: new Date(Date.now() - 140 * 60 * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true }),
-          dateStr: new Date().toISOString().split('T')[0],
-        }
-      ];
-      localStorage.setItem(ENTRIES_KEY, JSON.stringify(sampleEntries));
-      return sampleEntries;
-    }
+    if (!raw) return [];
     return JSON.parse(raw);
   } catch (err) {
     console.error('Failed to load entries:', err);

@@ -164,7 +164,7 @@ export const WardenPanel: React.FC<WardenPanelProps> = ({
           }`}
         >
           <Clock className="w-3.5 h-3.5 text-amber-400" />
-          <span>Operating Hours (6:00 AM – 5:30 PM)</span>
+          <span>Operating Hours ({format24To12(settings.openTime)} – {format24To12(settings.closeTime)})</span>
         </button>
 
         <button
@@ -387,7 +387,7 @@ export const WardenPanel: React.FC<WardenPanelProps> = ({
                 Pool Operating Hours & Settings
               </h2>
               <p className="text-xs text-slate-400 mt-1">
-                Configure pool timings (e.g. 6:00 AM to 5:30 PM), hostel titles, and warden security PIN.
+                Configure pool opening and closing hours, titles, and warden security PIN.
               </p>
             </div>
 

@@ -277,7 +277,7 @@ export const StudentEntryPortal: React.FC<StudentEntryPortalProps> = ({
                   required
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="e.g. Rahul Sharma"
+                  placeholder="Enter full name"
                   className="w-full bg-slate-800/80 border border-slate-700/80 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition"
                   disabled={!poolStatus.isOpen}
                 />
@@ -294,7 +294,7 @@ export const StudentEntryPortal: React.FC<StudentEntryPortalProps> = ({
                     required
                     value={roomNumber}
                     onChange={(e) => setRoomNumber(e.target.value)}
-                    placeholder="e.g. B-204"
+                    placeholder="e.g. Room 204"
                     className="w-full bg-slate-800/80 border border-slate-700/80 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 uppercase transition"
                     disabled={!poolStatus.isOpen}
                   />
@@ -310,7 +310,7 @@ export const StudentEntryPortal: React.FC<StudentEntryPortalProps> = ({
                     required
                     value={studentId}
                     onChange={(e) => setStudentId(e.target.value)}
-                    placeholder="e.g. 2024CS012"
+                    placeholder="e.g. Roll / ID"
                     className="w-full bg-slate-800/80 border border-slate-700/80 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 uppercase transition"
                     disabled={!poolStatus.isOpen}
                   />
@@ -326,7 +326,7 @@ export const StudentEntryPortal: React.FC<StudentEntryPortalProps> = ({
                   type="tel"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-                  placeholder="e.g. 9876543210"
+                  placeholder="Phone number"
                   className="w-full bg-slate-800/80 border border-slate-700/80 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 transition"
                   disabled={!poolStatus.isOpen}
                 />

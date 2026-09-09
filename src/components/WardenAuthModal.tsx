@@ -17,7 +17,7 @@ export const WardenAuthModal: React.FC<WardenAuthModalProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (pin === correctPin || pin === '1234') {
+    if (pin === (correctPin || '1234')) {
       onSuccess();
     } else {
       setError(true);
@@ -30,7 +30,7 @@ export const WardenAuthModal: React.FC<WardenAuthModalProps> = ({
       <div className="relative w-full max-w-sm bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl text-center">
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 p-2 text-slate-400 hover:text-white rounded-full bg-slate-800/60 transition"
+          className="absolute top-4 right-4 p-2 text-slate-400 hover:text-white rounded-full bg-slate-800/60 transition cursor-pointer"
         >
           <X className="w-4 h-4" />
         </button>
@@ -41,7 +41,7 @@ export const WardenAuthModal: React.FC<WardenAuthModalProps> = ({
 
         <h3 className="text-lg font-bold text-white mb-1">Warden Verification</h3>
         <p className="text-xs text-slate-400 mb-6">
-          Enter your 4-digit PIN to access the pool management dashboard.
+          Enter your authorized PIN to access the management dashboard.
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -53,7 +53,7 @@ export const WardenAuthModal: React.FC<WardenAuthModalProps> = ({
                 maxLength={8}
                 autoFocus
                 required
-                placeholder="Enter PIN (Default: 1234)"
+                placeholder="Enter PIN"
                 value={pin}
                 onChange={(e) => {
                   setPin(e.target.value);
@@ -66,7 +66,7 @@ export const WardenAuthModal: React.FC<WardenAuthModalProps> = ({
             </div>
             {error && (
               <span className="block text-[11px] text-rose-400 mt-1.5 font-medium">
-                Incorrect PIN. Default is 1234.
+                Incorrect PIN. Please try again.
               </span>
             )}
           </div>

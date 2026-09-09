@@ -130,7 +130,7 @@ export const QRCodePoster: React.FC<QRCodePosterProps> = ({ settings, onClose })
                 type="text"
                 value={targetUrl}
                 onChange={(e) => setTargetUrl(e.target.value)}
-                placeholder="https://your-hostel-pool.vercel.app"
+                placeholder="https://your-app.vercel.app"
                 className="w-full bg-slate-800/90 border border-slate-700 rounded-xl px-3.5 py-2 text-xs text-slate-200 focus:outline-none focus:border-cyan-500 transition"
               />
             </div>
